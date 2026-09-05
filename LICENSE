@@ -1,0 +1,57 @@
+Cell41 — the 4+1 cell — LICENSING MAP
+
+Copyright © 2026 Amihai Loven.
+
+This repository contains two distinct bodies of work governed by different
+terms, following the 5QLN Constitution & Open Source License published at:
+
+https://www.5qln.com/5qln-open-source-license/
+
+1. IMMUTABLE CONSTITUTIONAL KERNEL
+
+The 5QLN Covenant, the Five Phases and their core definitions, the Symbol
+Decoder and primary-symbol definitions, and the Attention State Machine are
+licensed under Creative Commons Attribution-NoDerivatives 4.0 International
+(CC BY-ND 4.0), with the 5QLN Specific Extension Exception.
+
+The full repository notice and Specific Extension Exception are in:
+
+    LICENSE-5QLN-KERNEL.md
+
+The CC BY-ND 4.0 legal code is available at:
+
+    https://creativecommons.org/licenses/by-nd/4.0/legalcode
+
+The kernel includes the Nine Invariant Lines and the §3.6 surface (the seal, reproduced in each desk's `SYSTEM.md` and in `skills/5qln-lock/SKILL.md`), the codex sources under `rounds/*/sources/`, and
+the constitutional expressions, definitions, and decoder rules reproduced
+elsewhere in the repository. In a mixed file, the kernel material remains
+under the kernel terms while the surrounding implementation is licensed as
+described below.
+
+2. MUTABLE IMPLEMENTATION
+
+Except for the Immutable Constitutional Kernel material identified above,
+the software, scripts, schemas, JSON structures, wrappers, tests, technical
+documentation, agent skills, custom instructions, prompt configurations, and
+examples in this repository are licensed under the Apache License, Version
+2.0. The complete text is in:
+
+    LICENSE-APACHE-2.0.txt
+
+The implementation may be modified and redistributed under Apache 2.0. Use of
+the 5QLN name or branding on a modified implementation remains subject to the
+Integrity Constraint and trademark notice in `LICENSE-5QLN-KERNEL.md` and
+`NOTICE`.
+
+3. REQUIRED ATTRIBUTION
+
+Any use of the 5QLN framework, whether in text or software, must include:
+
+    "Based on the 5QLN Constitutional Grammar by Amihai Loven (5qln.com)."
+
+4. TRADEMARK
+
+5QLN © 2026 Amihai Loven. All rights reserved regarding the trademark
+"5QLN" and the visual identity. Neither Apache 2.0 nor CC BY-ND 4.0 grants a
+general trademark or branding license.
+

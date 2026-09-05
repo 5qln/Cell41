@@ -1,0 +1,134 @@
+#!/usr/bin/env python3
+"""cell-begin — raise the 4+1 cell in its own workspace. A free corner gesture.
+
+RE-POINTED (the bindings round, C4 finding i): the reads this gesture
+needs (workspace list, pane list) are re-served by the REDUCED _cell_api
+surface (platform CLI read verbs — no socket).  The RAISE itself
+(workspace.create + layout.apply) was a write behind the removed wire —
+and a write the soft layer is not allowed to carry (the governing line:
+the soft layer only points at the engine; the only wire on the box is
+the pinned engine Instrument, K1).  The raise path therefore REFUSES,
+honestly and out loud, instead of improvising a second wire.  The cell
+is already standing; re-raising it is a platform act the human takes by
+hand (see below), and the standing-check below still protects a live
+cell from an overwrite.
+
+LAW ENCODED HERE (unchanged)
+  * Resolves the workspace by LABEL "the-cell" — never by id arithmetic.
+  * REFUSES to touch a cell that is already standing: layout.apply
+    REPLACES a tab; run over a live cell it would kill the plugin
+    podium and the desks.  A standing cell is never overwritten by a
+    machine — re-raising is a human's decision, and even then it is
+    close-then-begin, not begin-over-begin.
+  * Never passes focus:true.  The human's view is his.
+  * Never names, reads or writes workspace w1 (Amihai's own session).
+  * Boots no agents.  Writes no question.  Opens no plugin pane.
+
+Exit codes
+  0  the cell stands (verified read-only, nothing changed)
+  3  REFUSED: a cell is already standing (nothing was changed)
+  5  the score file is missing or unreadable
+  6  a platform read failed (nothing was changed)
+  9  REFUSED: the raise is a write — deferred to a declared write path
+     (the removed wire carried it; no soft-layer wire is re-added)
+"""
+from __future__ import annotations
+
+import json
+import os
+import sys
+
+sys.path.insert(0, os.path.dirname(os.path.realpath(__file__)))
+from _cell_api import (  # noqa: E402  (the reduced read surface)
+    CellApiError,
+    pane_list,
+    workspace_list,
+)
+
+CELL_LABEL = "the-cell"
+FORBIDDEN_WORKSPACE = "w1"  # never touched, whatever the label says
+
+
+def score() -> dict:
+    """The authored layout. plugin_root/cell.layout.json — never a guessed tree."""
+    root = os.environ.get("HERDR_PLUGIN_ROOT") or os.path.dirname(
+        os.path.dirname(os.path.realpath(__file__))
+    )
+    path = os.path.join(root, "cell.layout.json")
+    try:
+        with open(path, encoding="utf-8") as handle:
+            data = json.load(handle)
+    except (OSError, json.JSONDecodeError) as exc:
+        print(f"REFUSED: cannot read the score at {path}: {exc}", file=sys.stderr)
+        raise SystemExit(5)
+    if "root" not in data:
+        print(f"REFUSED: {path} has no `root` layout node.", file=sys.stderr)
+        raise SystemExit(5)
+    return data
+
+
+def find_cell() -> dict | None:
+    for workspace in workspace_list():
+        if workspace.get("label") == CELL_LABEL:
+            return workspace
+    return None
+
+
+def panes_of(workspace_id: str) -> list:
+    return pane_list(workspace_id)
+
+
+def describe(panes: list) -> str:
+    return ", ".join(
+        f"{pane.get('label') or '(unlabelled)'}={pane.get('pane_id')}"
+        for pane in panes
+    ) or "(no panes)"
+
+
+def main() -> int:
+    data = score()
+    workspace_spec = data.get("workspace", {})
+    if workspace_spec.get("label", CELL_LABEL) != CELL_LABEL:
+        print("REFUSED: the score's workspace label is not 'the-cell'.", file=sys.stderr)
+        return 2
+
+    existing = find_cell()
+    if existing is not None:
+        workspace_id = existing.get("workspace_id", "")
+        if workspace_id == FORBIDDEN_WORKSPACE:
+            print(
+                f"REFUSED: a workspace labelled '{CELL_LABEL}' resolved to "
+                f"{FORBIDDEN_WORKSPACE}, which this cell never touches.",
+                file=sys.stderr,
+            )
+            return 3
+        panes = panes_of(workspace_id)
+        if panes:
+            print(f"the cell stands in {workspace_id}.")
+            print(f"  panes: {describe(panes)}")
+            print("  Nothing was changed.")
+            return 0
+        print(f"workspace '{CELL_LABEL}' exists as {workspace_id} but holds no panes.")
+        print("  Refusing to act: raising writes layout, and this gesture no longer")
+        print("  carries a write path (the bindings round removed the plugin's wire — K1).")
+        print("  Nothing was changed.")
+        return 3
+
+    # The raise (workspace.create + layout.apply) rode the removed wire.
+    # The soft layer carries no write path this round: refuse, honestly.
+    print("REFUSED: raising a cell is a platform write, and the bindings round")
+    print("removed the plugin's wire (K1 — the only socket client on the box is")
+    print("the pinned engine Instrument). No soft-layer write path is re-added.")
+    print("")
+    print("The cell stands by human hands: create the workspace and apply the score")
+    print("through the platform's own verbs, from a human's keyboard. Boots no")
+    print("agents; the plant stays the human's. Workspace w1 is never named.")
+    return 9
+
+
+if __name__ == "__main__":
+    try:
+        sys.exit(main())
+    except CellApiError as exc:
+        print(f"STOP: {exc}", file=sys.stderr)
+        sys.exit(6)

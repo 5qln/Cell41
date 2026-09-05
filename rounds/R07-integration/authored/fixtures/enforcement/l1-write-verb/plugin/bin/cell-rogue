@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+# fixture: a deliberately-injected L1 violation — a herdr write verb in
+# the soft layer (the enforcement suite must FAIL on this file)
+herdr_send_prompt "G" "a prompt composed in the soft layer — forbidden"

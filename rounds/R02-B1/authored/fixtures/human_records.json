@@ -1,0 +1,46 @@
+{
+  "name": "R02-B1 simulated human records — the plant and the human's attestations, for scratch test ledgers only",
+  "note": "the walker detects an attestation by state == 'attested' for the same (address, gate); the attestation_ref VALUE is irrelevant to it, so every record here keeps attestation_ref null — the artifact never assigns a non-null value anywhere (K4). turn_key is computed by make_record() from the attempt field.",
+  "plant": {
+    "address": "",
+    "gate": "x",
+    "state": "attested",
+    "mark": "emergent",
+    "payload_ref": "cell:plant",
+    "axis": {"field": {"mode": "anchored", "anchor": "cell:plant"}, "delta": []},
+    "axis_verdict": null,
+    "corruption": null,
+    "tentative": false,
+    "turn_key_from": {"attempt": ""},
+    "block_version": "g-essence@3",
+    "attestation_ref": null
+  },
+  "attest_g": {
+    "address": "G",
+    "gate": "y",
+    "state": "attested",
+    "mark": "emergent",
+    "payload_ref": "human:attest-g",
+    "axis": {"field": {"mode": "anchored", "anchor": "human:attest-g"}, "delta": []},
+    "axis_verdict": null,
+    "corruption": null,
+    "tentative": false,
+    "turn_key_from": {"attempt": "1"},
+    "block_version": "g-essence@3",
+    "attestation_ref": null
+  },
+  "attest_q": {
+    "address": "Q",
+    "gate": "z",
+    "state": "attested",
+    "mark": "emergent",
+    "payload_ref": "human:attest-q",
+    "axis": {"field": {"mode": "anchored", "anchor": "human:attest-q"}, "delta": []},
+    "axis_verdict": null,
+    "corruption": null,
+    "tentative": false,
+    "turn_key_from": {"attempt": "1"},
+    "block_version": "g-essence@3",
+    "attestation_ref": null
+  }
+}

@@ -1,0 +1,14 @@
+Cell41 — the 4+1 cell
+Copyright © 2026 Amihai Loven
+
+Based on the 5QLN Constitutional Grammar by Amihai Loven (5qln.com).
+
+This distribution contains an Immutable Constitutional Kernel licensed under
+CC BY-ND 4.0 with the 5QLN Specific Extension Exception, and a Mutable
+Implementation licensed under Apache License 2.0. See LICENSE,
+LICENSE-5QLN-KERNEL.md, and LICENSE-APACHE-2.0.txt.
+
+The 5QLN trademark and visual identity are reserved. Apache 2.0 does not grant
+permission to use the 5QLN trademark except for reasonable and customary
+description of the work's origin and reproduction of this NOTICE.
+

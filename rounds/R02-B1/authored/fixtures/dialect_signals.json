@@ -1,0 +1,76 @@
+{
+  "name": "R02-B1 dialect signal fixtures (§4.4 payload shapes, tested by fixture — Pi and dsh have no live signal source this round)",
+  "herdr": {
+    "blocked": [
+      {"agent_status": "blocked"},
+      {"pane_id": "w8:p3", "agent_status": "blocked", "agent": "pi", "revision": 2}
+    ],
+    "not_blocked": [
+      {"agent_status": "idle"},
+      {"agent_status": "working"},
+      {"agent_status": "done"},
+      {"agent_status": "unknown"},
+      {},
+      {"agent_status": null},
+      {"agent_status": 7}
+    ]
+  },
+  "pi": {
+    "blocked": [
+      {"terminate": true},
+      {"ctx": {"ui": {"confirm": "proceed?"}}}
+    ],
+    "not_blocked": [
+      {"terminate": false},
+      {"terminate": "yes"},
+      {"ctx": {}},
+      {"ctx": {"ui": {}}},
+      {}
+    ]
+  },
+  "dsh": {
+    "blocked": [
+      {"state": "held-pending"},
+      {"gate_state": "held-pending"},
+      {"status": "held-pending"},
+      {"approval": "failed"},
+      {"held": "SID-42"}
+    ],
+    "not_blocked": [
+      {"state": "mechanical"},
+      {"state": null},
+      {"approval": "granted"},
+      {"held": null},
+      {}
+    ]
+  },
+  "cell": {
+    "blocked": [
+      {"axis_verdict": "MOVING"},
+      {"verdict": "MOVING"},
+      {"moving": true}
+    ],
+    "not_blocked": [
+      {"axis_verdict": "STASIS"},
+      {"axis_verdict": "recast"},
+      {"axis_verdict": null},
+      {"moving": false},
+      {}
+    ]
+  },
+  "junk": [
+    null,
+    "blocked",
+    "MOVING",
+    17,
+    3.5,
+    true,
+    [],
+    ["agent_status", "blocked"],
+    {"agent_status": ["blocked"]},
+    {"terminate": [true]},
+    {"ctx": "ui"},
+    {"held": {}},
+    {"axis_verdict": []}
+  ]
+}

@@ -1,0 +1,189 @@
+#!/usr/bin/env python3
+"""cell-podium — the podium's content, re-pointed to the formation trail
+(R08, the bindings round; the look-and-feel skin is a separate, later
+round — H-R08-6 — this renderer only carries the CONTENT).
+
+A small, read-only renderer over state/trail.jsonl: it shells to
+`cellctl trail` (the seam — one call per invocation, C1's shape held by
+the platform surface too), receives the engine's own read-trail report,
+and prints one display line per trail event — human and desk
+interleaved, in the report's own order, using read_trail's field shape
+(trail_version · scope · seq · ts · phase · source · event · signal ·
+content · return_question · turn_key · cell · cycle · ledger ·
+conformance · cost · prev_hash · event_hash).  References only, never
+content (D12): the desk's text and the context it received never enter
+this pane.
+
+The renderer contains no trail logic, no ledger logic, no socket code,
+no record-writing and no engine import (C7) — the classification
+(absent / empty / ok / partial / damaged, the chain verdict, the torn
+tail) is the engine's, delivered through the seam, and is PRINTED, never
+re-derived.  An absent trail reads INCONCLUSIVE — never clean, never a
+fixture stand-in (C6, lens 3, lens 6):
+
+    no trail yet — no /conduct has run on this cell; INCONCLUSIVE
+
+Fail-closed: a seam that cannot be reached (absent binary, refused
+import, non-zero exit with no report) prints the INCONCLUSIVE banner and
+the raw stderr tail, never a substitute.
+
+Config (data): the seam binary is CELLCTL_BIN or the declared default
+(the R07 attested cellctl); the ledger and trail paths arrive as argv
+from the manifest pane command (data, one place to change — K5).  The
+display is deterministic and stdlib-only: no network, no wall-clock in
+logic (the refresh cadence is the manifest's `watch` — data, not code).
+"""
+
+from __future__ import annotations
+
+import json
+import os
+import subprocess
+import sys
+
+DEFAULT_CELLCTL = ("/home/deploy/the-cell/rounds/"
+                   "R07-integration/authored/cellctl")
+
+_RULE = "─" * 64
+
+
+def _bin():
+    return os.environ.get("CELLCTL_BIN") or DEFAULT_CELLCTL
+
+
+def _ref(value, width):
+    """A reference field rendered short: refs stay refs (D12)."""
+    if value is None:
+        return "-"
+    text = str(value)
+    return text if len(text) <= width else text[: width - 1] + "…"
+
+
+def _line(entry, seq):
+    source = entry.get("source") or "-"
+    event = entry.get("event") or "-"
+    phase = entry.get("phase") or "-"
+    cell = entry.get("cell") or "-"
+    cycle = entry.get("cycle")
+    cycle = "-" if cycle is None else str(cycle)
+    turn = _ref(entry.get("turn_key"), 8)
+    rq = _ref(entry.get("return_question"), 26)
+    signal = _ref(entry.get("signal"), 22)
+    ts = entry.get("ts") or "-"
+    return ("#%03d %s [%s] %-12s phase=%s cell=%s cycle=%s "
+            "turn=%s signal=%s ∞0′=%s"
+            % (seq, ts, source, event, phase, cell, cycle, turn,
+               signal, rq))
+
+
+def render(report, trail_path):
+    status = report.get("status")
+    if status == "absent":
+        return ("no trail yet — no /conduct has run on this cell "
+                "(%s is absent); INCONCLUSIVE, never a stand-in"
+                % trail_path)
+    if status == "empty":
+        return ("the trail file %s is EMPTY — sha256 %s … — an empty "
+                "file never reads valid; INCONCLUSIVE, never clean"
+                % (trail_path,
+                   (report.get("sha256") or "e3b0c44298fc")[:16]))
+    lines = report.get("lines")
+    if status not in ("ok", "partial", "damaged") or \
+            not isinstance(lines, list):
+        return ("the trail reads %s (%s) — INCONCLUSIVE, never clean"
+                % (status, str(report.get("reason") or "")[:160]))
+    if status == "damaged":
+        damage = report.get("damage") or {}
+        banner = ("TRAIL DAMAGED (%s: %s) — INCONCLUSIVE, never clean; "
+                  "the complete prefix is shown below"
+                  % (damage.get("kind") or "-",
+                     str(damage.get("detail") or "")[:60]))
+    else:
+        chain = (report.get("chain") or {}).get("status")
+        if chain == "broken":
+            banner = ("TRAIL CHAIN BROKEN at %s — INCONCLUSIVE, never "
+                      "clean; shown as-is" % (report.get("chain") or
+                                              {}).get("first_break"))
+        else:
+            banner = "chain: %s (below two lines: undecidable, never " \
+                     "trivially clean)" % chain
+    tail = report.get("tail") or {}
+    torn = ("· mid-run — a torn tail was discarded, never a line"
+            if tail.get("torn") else "")
+    out = [_RULE,
+           "the formation trail — %s" % trail_path,
+           "status: %s · %s%s" % (status, banner, torn),
+           "sha256 %s · %d event line(s)"
+           % ((report.get("sha256") or "-")[:16], len(lines)),
+           _RULE]
+    for index, entry in enumerate(lines, start=1):
+        out.append(_line(entry, index))
+    if status == "partial":
+        out.append("… the run may still be writing — refresh for more.")
+    return "\n".join(out)
+
+
+def main(argv):
+    ledger = None
+    trail = None
+    args = list(argv)
+    while args:
+        flag = args.pop(0)
+        if flag == "--ledger" and args:
+            ledger = args.pop(0)
+        elif flag == "--trail" and args:
+            trail = args.pop(0)
+    if not trail:
+        print("cell-podium: --trail <path> is required (the manifest "
+              "pane command passes it — data)", file=sys.stderr)
+        return 2
+    command = [_bin(), "trail", "--ledger",
+               ledger or "", "--trail", trail]
+    try:
+        completed = subprocess.run(command, capture_output=True)
+    except OSError as exc:
+        print(_RULE)
+        print("the formation trail — %s" % trail)
+        print("status: UNREACHABLE — the seam binary is absent or "
+              "refused (%s); INCONCLUSIVE, never a stand-in" % exc)
+        print(_RULE)
+        return 0
+    if completed.returncode != 0 or not completed.stdout.strip():
+        # a seam report that still parses is carried honestly (an
+        # absent trail exits 1 BY DECLARATION — that is the report,
+        # not an outage); only an unreadable or empty result is
+        # UNREACHABLE.
+        report = None
+        if completed.stdout.strip():
+            try:
+                report = json.loads(completed.stdout.decode("utf-8"))
+            except (UnicodeDecodeError, json.JSONDecodeError):
+                report = None
+        if report is not None and isinstance(report, dict) \
+                and isinstance(report.get("status"), str):
+            print(render(report, trail))
+            return 0
+        print(_RULE)
+        print("the formation trail — %s" % trail)
+        print("status: UNREACHABLE — the seam refused or is absent; "
+              "INCONCLUSIVE, never a stand-in")
+        if completed.stderr:
+            for row in completed.stderr.decode("utf-8", "replace") \
+                    .splitlines()[-4:]:
+                print("  " + row[:100])
+        print(_RULE)
+        return 0
+    try:
+        report = json.loads(completed.stdout.decode("utf-8"))
+    except (UnicodeDecodeError, json.JSONDecodeError) as exc:
+        print(_RULE)
+        print("the seam returned an unreadable report (%s) — "
+              "INCONCLUSIVE, never clean" % exc)
+        print(_RULE)
+        return 0
+    print(render(report, trail))
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv[1:]))

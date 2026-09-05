@@ -1,0 +1,31 @@
+{
+  "name": "pi-cell",
+  "version": "0.1.0",
+  "description": "the conductor binding: the 13 cellctl subcommands as pi slash tools — each a thin shell to the seam, one cellctl call each (candidate package name, D4 — his to name)",
+  "type": "module",
+  "keywords": [
+    "pi-package",
+    "pi-coding-agent",
+    "cellctl",
+    "binding"
+  ],
+  "license": "MIT",
+  "engines": {
+    "node": ">=20"
+  },
+  "pi": {
+    "extensions": [
+      "./index.ts"
+    ]
+  },
+  "files": [
+    "index.ts",
+    "src/**/*",
+    "README.md"
+  ],
+  "peerDependencies": {
+    "@earendil-works/pi-ai": "*",
+    "@earendil-works/pi-coding-agent": "*",
+    "typebox": "*"
+  }
+}

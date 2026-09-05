@@ -1,0 +1,174 @@
+# herdr-plugin.toml — THE CELL as an instrument · v2 (identity key corrected)
+# plugin id: cell.fiveqln · authored 2026-08-24 by hermes-amihai [A]
+# plugin_root (server-derived) = the parent of this file = /home/deploy/the-cell/plugin
+#
+# v1 WAS NEVER LINKED. It was rejected by the live server at 2026-08-24 with:
+#   plugin_manifest_parse_failed → "TOML parse error at line 1, column 1 … missing field `id`"
+# v2 changes exactly two things, both because of evidence and neither by taste:
+#   1. `plugin_id` → `id`          (the parser said so — Source 0 below)
+#   2. the [[events]] block is withheld (its name grammar is unverified — OPEN-5 below)
+# Nothing else moved. The podium, the four actions and every guard are byte-for-byte v1.
+#
+# GROUNDING — in order of authority, which is the order I should have used the first time:
+#   Source 0 (DECISIVE, live): the server's own parse error on `herdr plugin link`, quoted
+#     above, reported in inbox/SWAP-REPORT-2026-08-24.md. The parser is the authority.
+#   Source D (DOCUMENTED EXAMPLE, and I already had it): /opt/data/cache/herdr-dossier.md
+#     lines 1085-1135 — "Manifest schema (complete, from docs)", a full worked
+#     herdr-plugin.toml, plus the prose: "Top-level required: id, name, version,
+#     min_herdr_version. Optional: description, platforms." It says `id`. It always said
+#     `id`. I had this file in my own cache, cited it as a secondary source for the ARRAY
+#     names, and then let a strings-inference from the binary overrule it on the identity
+#     key. SECOND RULE ADDED, harder than the first: a documented worked example outranks
+#     any inference, including my own from the API schema or the binary. If they disagree,
+#     the example is the fact and the inference is the hypothesis.
+#   Source A (live): inbox/herdr-api.schema.json — protocol 20, herdr 0.8.2.
+#     $defs: InstalledPluginInfo, PluginManifestPane, PluginManifestAction,
+#     PluginManifestEventHook, PluginPanePlacement, PopupSize, PluginPlatform,
+#     PluginActionContext, EventKind.
+#   Source B (host binary): inbox/DISCOVERY-PLUGIN-GRAMMAR-REPORT-2026-08-24.md
+#     — `struct RawPluginManifest with 12 elements` + the validation-error cluster.
+#
+# THE MISTAKE V1 MADE, WRITTEN DOWN SO IT IS NOT REPEATED:
+#   `RawPluginManifest` (what the TOML is parsed INTO) and `InstalledPluginInfo` (what the
+#   API hands BACK) share a flat 12-field shape but do NOT share the identity key's name:
+#     TOML in  →  id
+#     API out  →  plugin_id
+#   I read the output struct's field list and wrote it into the input file. A schema of the
+#   API's view is not a schema of the file. The 12-count still holds either way — which is
+#   exactly why it did not catch the error: id · name · version · min_herdr_version ·
+#   description · platforms · build · startup · actions · events · panes · link_handlers.
+#   RULE ADDED: when a tool has both an input parse model and an output info struct, only
+#   the parse model's own error messages settle a field name. Everything else is a guess
+#   wearing evidence's clothes.
+#
+# NEWLY OPEN, AND THEREFORE ABSENT FROM THIS FILE — OPEN-5 (event-hook name grammar):
+#   the two sources disagree, and neither can settle the other:
+#     docs example (Source D, line 1112):        on = "worktree.created"      (dotted)
+#     API EventKind enum (herdr-api.schema.json): "worktree_created"          (underscore)
+#   The dossier itself flags this gap: "The Plugins doc shows on = \"worktree.created\" as an
+#   example event but does not enumerate the full set." So the manifest spelling of
+#   `pane_agent_status_changed` is UNKNOWN — `pane.agent_status_changed` is a guess about a
+#   transformation I have not seen performed.
+#   DECISION: the [[events]] block is REMOVED from this version rather than guessed. Reasons,
+#   in order: (1) an unrecognized event name surfaces as a plugin.list warning, and my own
+#   swap instruction treats any warning as a stop — so a guess here costs the next
+#   attestation; (2) with no desk agents booted, the hook records nothing, so it buys nothing
+#   tonight; (3) "no invented knobs" is the law, and two candidate spellings with no evidence
+#   is exactly the case it was written for. bin/cell-on-desk-state ships anyway, inert and
+#   unreferenced, and the block returns in one line once the grammar is verified.
+#
+# THE OTHER THREE OPENS OF THE DRAFT REMAIN CLOSED (unaffected by the above):
+#   OPEN-2 (entrypoint) → the pane's own `id`. PluginPaneOpenParams requires
+#     {plugin_id, entrypoint}; PluginPaneInfo returns {plugin_id, entrypoint, pane};
+#     the pane command is handed HERDR_PLUGIN_ENTRYPOINT_ID. So entrypoint = "podium".
+#     The swap instruction still READS the id back from plugin.list before opening —
+#     the server's parse, not my assumption, supplies the value.
+#   OPEN-3 (invocation context) → environment variables. HERDR_PLUGIN_CONTEXT_JSON
+#     (a PluginInvocationContext object), plus HERDR_PLUGIN_ENTRYPOINT_ID,
+#     HERDR_PLUGIN_ACTION_ID, HERDR_PLUGIN_EVENT/_JSON, HERDR_WORKSPACE_ID,
+#     HERDR_TAB_ID, HERDR_PANE_ID, HERDR_PLUGIN_ROOT/_CONFIG_DIR/_STATE_DIR,
+#     HERDR_SOCKET_PATH. bin/* read these; nothing depends on argv or cwd.
+#   OPEN-4 (calling an API method from a script) → there is NO `herdr api call`.
+#     Arbitrary methods go over the unix socket as {"id","method","params"}.
+#     bin/_cell_api.py is my own 60-line stdlib client — the cell does not depend on
+#     any file authored by the sibling.
+#
+# ONE CATCH CAUGHT BEFORE LINKING (why the draft would have failed validation):
+#   the draft podium pane carried width = "30%" together with placement = "split".
+#   The binary's validator says verbatim: "pane width and height are only supported
+#   when placement is popup" → the draft would have died on invalid_plugin_pane_size.
+#   width/height are GONE from this file. The podium's 30% comes from geometry instead:
+#   the plugin pane is born inside the interim podium's own column and inherits that
+#   area when the interim one closes. No layout.set_split_ratio is needed — and that
+#   verb was not attested.
+#
+# LAW ENCODED HERE:
+#   podium = plugin-owned, no shell                    (sealed center)
+#   plant / attest = fail closed without a human TTY   (DC-02, by construction)
+#   begin / zoom  = freely machine-invokable           (free corners)
+#   no startup, no build, no link_handlers             (nothing autonomous)
+#   nothing in this manifest names workspace w1        (Amihai's session, untouched)
+
+# ── identity (flat, and the identity key is `id` — settled by the parser itself) ──────
+# `id` is what the TOML parse model requires; the API reports the same value back as
+# `plugin_id` in InstalledPluginInfo. Do not add a second `plugin_id` key here: the parser
+# ignores keys it does not know, so it would sit in the file looking authoritative and
+# meaning nothing. One name in, one name out, and this comment is the bridge between them.
+id                = "cell.fiveqln"
+name              = "The Cell — 4+1"
+version           = "1.0.0"
+description       = "The 4+1 cell as a Herdr instrument: a sealed podium holding the human's question, four free desks G·Q·P·V, and the actions that raise, plant, attest and descend."
+min_herdr_version = "0.8.2"   # must be <= 0.8.2 (binary carries the literal threshold)
+platforms         = ["linux"] # PluginPlatform enum: linux | macos | windows
+
+# ── the podium: the sealed center ───────────────────────────────────────────
+# PluginManifestPane: id* · title* · command* · description · placement · width · height · platforms
+# The command is BYTE-IDENTICAL to the live interim podium verified 2026-08-24 via
+# pane.process_info (foreground = `watch`, no shell). Taking plugin ownership adds
+# no new process risk: the seal proven for w2:p2 carries over unchanged.
+# It renders question.md ONLY. Gate state deliberately does not appear here — the
+# center holds the question, nothing else.
+# NO width/height: they are popup-only (see "ONE CATCH" above).
+[[panes]]
+id          = "podium"
+title       = "THE QUESTION"
+command     = ["watch", "-n", "2", "cat", "/home/deploy/the-cell/question.md"]
+placement   = "split"   # PluginPanePlacement: overlay | popup | split | tab | zoomed
+description = "SEALED. The live question, planted by the human alone. No shell lives here."
+
+# ── the actions: the score's four gestures ──────────────────────────────────
+# PluginManifestAction: id* · title* · command* · description · contexts · platforms
+# PluginActionContext enum (verified): global | workspace | tab | pane | selection
+# Every command is an absolute path inside plugin_root/bin — nothing depends on cwd.
+
+# begin — raise the cell. Machine-invokable (a free corner gesture).
+# Resolves the workspace by LABEL "the-cell"; REFUSES to re-apply a layout over a
+# cell that is already standing (layout.apply replaces the tab and would kill the
+# plugin podium). Never passes focus:true. Never names w1. Boots no agents.
+[[actions]]
+id          = "begin"
+title       = "Begin — raise the cell"
+command     = ["/home/deploy/the-cell/plugin/bin/cell-begin"]
+contexts    = ["global"]
+description = "Raise the 4+1 cell in its own workspace: podium + desks G·Q·P·V. Boots no agents. Refuses to overwrite a standing cell."
+
+# plant — the ONLY write path to question.md, and it is a human's hands.
+# FAILS CLOSED: stdin not a TTY ⇒ refuse, exit 4. plugin.action.invoke over the
+# socket therefore cannot plant a question — it can only ask a human to.
+[[actions]]
+id          = "plant"
+title       = "Plant the question (human only)"
+command     = ["/home/deploy/the-cell/plugin/bin/cell-plant"]
+contexts    = ["global"]
+description = "Open question.md for the human to write the live question. Refuses without a human at a keyboard."
+
+# attest — records the human's confirmation of the desk standing at the gate,
+# in state/gates.jsonl — never in question.md. Same TTY guard: an attestation
+# typed by a machine is not an attestation.
+[[actions]]
+id          = "attest"
+title       = "Attest the current gate"
+command     = ["/home/deploy/the-cell/plugin/bin/cell-attest"]
+contexts    = ["global", "pane"]
+description = "Record the human's attestation of the desk now standing at the gate. Human TTY required."
+
+# zoom — the holographic descent (XY := X within Y): a desk opens as its own cell.
+# v1 reports the descent target and mutates nothing; free to be machine-invoked.
+[[actions]]
+id          = "zoom"
+title       = "Zoom into a desk"
+command     = ["/home/deploy/the-cell/plugin/bin/cell-zoom"]
+contexts    = ["pane"]
+description = "Descend into the focused desk as its own cell (holographic law). v1: reports the descent target, mutates nothing."
+
+
+# ── deliberately absent ─────────────────────────────────────────────────────
+# [[startup]]       — nothing in this cell may start unbidden.
+# [[build]]         — the cell is declarative; there is nothing to compile.
+# [[link_handlers]] — no URL surface at v1.
+# [[events]]        — WITHHELD, not abandoned: see OPEN-5 in the header. The conductor's ears
+#                     wait for one verified event name rather than a plausible one. When it
+#                     returns it is exactly:
+#                       [[events]]
+#                       on      = "<the verified spelling>"
+#                       command = ["/home/deploy/the-cell/plugin/bin/cell-on-desk-state"]

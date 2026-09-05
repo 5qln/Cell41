@@ -1,0 +1,50 @@
+# cell.yaml — THE SCORE (repo revision: R4-aligned)
+# The 4+1 cell as a declarative Herdr layout. Authored 2026-08-24 from the
+# round-tripped layout.export of the live cell — observed grammar, not guessed.
+# Runtime pane/tab ids stripped: this file is a TEMPLATE. Apply with layout.apply
+# (tab_id XOR workspace_id — never both).
+#
+# Repo revision (2026-08-25): R4-aligned — the podium command is RELATIVE and every
+# pane lives in the ε node directory (nodes/_), so the centre is node-local per
+# ADDRESS.md §4. The workspace cwd stays the canonical deploy root — a deployment
+# constant, not a centre path. The live host's on-disk copy is the older
+# absolute-path form; the delta is the R4 demotion itself.
+#
+# Law encoded: podium = non-shell viewer pane (watch cat) at left ~30%, sealed.
+# Desks G·Q·P·V clockwise from top-left. Desks are bare shells; agents boot
+# only at an attested walk. The podium is replaced by a plugin-owned
+# pane (plugin.pane.open) when the plugin is enabled — the seal stands on
+# "no shell in the foreground", proven by pane.process_info.
+
+workspace:
+  label: the-cell
+  cwd: /home/deploy/the-cell
+  focus: false          # never yank the human's view
+
+layout:                 # layout.apply root — LayoutNode tree (protocol 20, herdr 0.8.2)
+  type: split
+  direction: right
+  ratio: 0.30           # ratio = share of FIRST child (verified)
+  first:
+    type: pane
+    label: podium       # SEALED — the center. Human-planted question only.
+    cwd: /home/deploy/the-cell/nodes/_
+    command: ["watch", "-n", "2", "cat", "./question.md"]
+  second:
+    type: split
+    direction: down
+    ratio: 0.5
+    first:
+      type: split
+      direction: right
+      ratio: 0.5
+      first:  {type: pane, label: G, cwd: /home/deploy/the-cell/nodes/_}   # top-left
+      second: {type: pane, label: Q, cwd: /home/deploy/the-cell/nodes/_}   # top-right
+    second:
+      type: split
+      direction: right
+      ratio: 0.5
+      first:  {type: pane, label: V, cwd: /home/deploy/the-cell/nodes/_}   # bottom-left
+      second: {type: pane, label: P, cwd: /home/deploy/the-cell/nodes/_}   # bottom-right
+
+# Corners clockwise: G → Q → P → V. Center: the question. Never 3+1, never 6+1.

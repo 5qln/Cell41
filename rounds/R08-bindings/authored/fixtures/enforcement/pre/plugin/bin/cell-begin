@@ -1,0 +1,16 @@
+#!/usr/bin/env python3
+"""fixture cell-begin — a declared, clean soft-layer bin (read-only
+surface act) in the pre world, mirroring the live cell-begin class of
+bin.  Declared fixture apparatus, never the production surface."""
+from __future__ import annotations
+
+import sys
+
+
+def main():
+    print("cell-begin: fixture stand-in (declared, never drives a desk)")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

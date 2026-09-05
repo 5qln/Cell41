@@ -1,0 +1,56 @@
+#!/bin/sh
+# cell-plant v2 (§B / R4) — the ONLY write path to a node's question.md, and it is a human's hands.
+#
+# WHAT CHANGED FROM v1 (one thing only): the centre path is no longer a hardcoded absolute
+# (/home/deploy/the-cell/question.md — one path every node would share = a privileged root).
+# The centre is now NODE-LOCAL: <cell-root>/nodes/<word>/question.md, where <cell-root> is derived
+# from THIS SCRIPT'S OWN LOCATION (bin → plugin → cell root), never from a shared constant.
+# An optional argument names the node word:  cell-plant        → the ε node (nodes/_/)
+#                                            cell-plant SGQ   → nodes/SGQ/  (must already exist)
+#
+# LAW (maturation-log 001 · SEAL-STRICTNESS, his words: "for a start its ok that i
+# need to be at the keyboard"): this refuses to run unless stdin is a real TTY. A
+# question planted over the socket is not a planted question. There is no flag, no
+# env var and no override path to defeat this — by construction, not by policy.
+#
+# Exit codes: 0 = editor ran · 2 = bad word · 4 = no human TTY (refusal)
+#             5 = missing target dir · 8 = no cell.node.json (the node is undeclared; refuse)
+set -eu
+
+SCRIPT_DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+CELL_ROOT=$(dirname "$(dirname "$SCRIPT_DIR")")
+
+WORD=""
+if [ $# -gt 0 ]; then
+    WORD=$(printf '%s' "$1" | tr -d 'a-z')
+    # a word is over {S, G, Q, P, V} only — anything else is not a node
+    if [ "$WORD" != "$1" ] || printf '%s' "$WORD" | grep -q '[^SGQPV]'; then
+        printf '%s\n' "REFUSED: '$1' is not a word over {S, G, Q, P, V}." >&2
+        exit 2
+    fi
+fi
+NODE_DIR="$CELL_ROOT/nodes/${WORD:-_}"
+
+if [ ! -t 0 ] || [ ! -t 1 ]; then
+    printf '%s\n' "REFUSED: cell-plant needs a human at a keyboard." >&2
+    printf '%s\n' "stdin/stdout is not a TTY, so this invocation is a machine's." >&2
+    printf '%s\n' "The question is Amihai's to type, in the pane, with his hands." >&2
+    exit 4
+fi
+
+if [ ! -f "$NODE_DIR/cell.node.json" ]; then
+    printf '%s\n' "REFUSED: $NODE_DIR/cell.node.json is missing — the node is undeclared." >&2
+    printf '%s\n' "No default node, no fallback (ADDRESS.md §4). Declaring a node is not this script's act." >&2
+    exit 8
+fi
+
+QUESTION="$NODE_DIR/question.md"
+
+if [ ! -d "$NODE_DIR" ]; then
+    printf '%s\n' "REFUSED: $NODE_DIR does not exist. Not creating it." >&2
+    exit 5
+fi
+
+# Deliberately does NOT create, template or pre-fill the file. Whatever is there is
+# his, including a placeholder. An empty file is a truthful empty podium.
+exec "${EDITOR:-vi}" "$QUESTION"

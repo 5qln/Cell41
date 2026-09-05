@@ -1,0 +1,18 @@
+{
+  "needle": "∞0′ → ‖",
+  "note": "the byte-round-trip fixture (lens 4): the needle pushed through tool/action string fields — tool args (probe params), action argv, inline JSON, file paths. The fake cellctl echoes every string field verbatim; the selftest asserts the returned bytes equal the input bytes, so any normalisation (⋂→∩, ′→', spacing collapse) would break the assertion. DATA — the selftest iterates these cases; a new case = a new row.",
+  "cases": [
+    {"tool": "word", "params": {"json": "{\"word\":\"SGQPV\",\"seed\":{\"address\":\"\",\"ref\":\"plant:sha256:ab12cd34ef ∞0′ → ‖\"},\"paths\":[{\"from\":\"\",\"path\":\"−G ∞0′ → ‖\",\"to\":\"G\"}]}"},
+     "echo_field": "needle_echo"},
+    {"tool": "decode", "params": {"phase": "G", "values": "{\"X ∞0′ → ‖\":\"the question ∞0′ → ‖\",\"note\":\"⋂ φ Ω ∇ ∞0′ → ‖\"}"},
+     "echo_field": "needle_echo"},
+    {"tool": "compile", "params": {"phase": "V", "slots": "{\"seat\":\"V = (L ∩ G → B'') → ∞0′\",\"marker\":\"∞0′ → ‖\"}"},
+     "echo_field": "stdout"},
+    {"tool": "descent", "params": {"op": "validate-path", "path": "+·−G−Q−P−V ∞0′ → ‖"},
+     "expect": "refused"},
+    {"tool": "config", "params": {"path": "needle ∞0′ → ‖.json"},
+     "echo_field": "stdout"},
+    {"tool": "trail", "params": {"ledger": "ledger ∞0′ → ‖.jsonl", "trail": "trail ∞0′ → ‖.jsonl"},
+     "echo_field": "stdout"}
+  ]
+}

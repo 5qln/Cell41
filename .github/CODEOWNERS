@@ -1,0 +1,4 @@
+# CODEOWNERS — main-branch review gate.
+# With "Require review from Code Owners" on, every PR touching any file
+# needs @5qln approval before it can merge.
+* @5qln

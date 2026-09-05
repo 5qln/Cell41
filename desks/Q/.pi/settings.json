@@ -1,0 +1,10 @@
+{
+  "defaultProvider": "deepseek",
+  "defaultModel": "deepseek-v4-pro",
+  "defaultThinkingLevel": "high",
+  "defaultTools": [
+    "read",
+    "grep",
+    "bash"
+  ]
+}

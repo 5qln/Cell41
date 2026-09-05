@@ -1,0 +1,3 @@
+#!/usr/bin/env bash
+# fixture: a declared, clean soft-layer bin (read-only surface act)
+echo "cell-begin: fixture stand-in (declared, never drives a desk)"

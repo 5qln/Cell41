@@ -1,0 +1,110 @@
+#!/usr/bin/env python3
+"""cell-zoom — the holographic descent (XY := X within Y). A free corner gesture.
+
+RE-POINTED (the bindings round, C4 finding i): the reads this gesture
+needs (workspace list, pane get) are re-served by the REDUCED _cell_api
+surface (platform CLI read verbs — no socket).  Nothing else changed:
+zoom is and was a pure read — it reports exactly what a descent would
+open and mutates nothing.
+
+THE LAW IT SPEAKS: a desk is not a smaller box, it is the same cell one level in. Zooming
+into G means: G becomes the centre of its own 4+1 — its own question, its own G·Q·P·V —
+and the cell above it does not change. Same form, another scale. Never 3+1, never 6+1.
+
+It resolves which desk you stand in and reports exactly what a descent
+would open. It creates no workspace, no tab, no pane, writes no file,
+and records nothing — not even a log line.  Machine-invokable precisely
+because it cannot change anything.
+
+Exit codes
+  0  the descent target was reported
+  2  no pane could be resolved from the invocation context
+  6  a platform read failed
+  7  REFUSED: the target is the podium (the centre does not descend into itself) or
+     lies outside the cell
+"""
+from __future__ import annotations
+
+import os
+import sys
+
+sys.path.insert(0, os.path.dirname(os.path.realpath(__file__)))
+from _cell_api import (  # noqa: E402  (the reduced read surface)
+    CellApiError,
+    context,
+    pane_get,
+    workspace_list,
+)
+
+CELL_LABEL = "the-cell"
+DESKS = ("G", "Q", "P", "V")
+MEANING = {
+    "G": "the irreducible essence — what this is, stripped of everything it is not",
+    "Q": "the lock — where this work's interest and the field's interest meet",
+    "P": "the unforced gradient — the path that does not have to be pushed",
+    "V": "what crystallized, and the question that could not have been asked before",
+}
+
+
+def cell_workspace_id() -> str | None:
+    for workspace in workspace_list():
+        if workspace.get("label") == CELL_LABEL:
+            return workspace.get("workspace_id")
+    return None
+
+
+def resolve_pane() -> dict:
+    ctx = context()
+    pane_id = (
+        ctx.get("focused_pane_id")
+        or ctx.get("target_pane_id")
+        or os.environ.get("HERDR_PANE_ID")
+        or os.environ.get("HERDR_ACTIVE_PANE_ID")
+    )
+    if not pane_id:
+        print("Cannot tell which desk you stand in: no pane in the invocation context.", file=sys.stderr)
+        raise SystemExit(2)
+    return pane_get(pane_id)
+
+
+def main() -> int:
+    pane = resolve_pane()
+    desk = (pane.get("label") or "").strip()
+    pane_id = pane.get("pane_id", "")
+    workspace_id = pane.get("workspace_id", "")
+
+    cell_id = cell_workspace_id()
+    if cell_id is None or workspace_id != cell_id:
+        print(
+            f"REFUSED: pane {pane_id} is in workspace {workspace_id}, not in the cell"
+            f" ({cell_id or 'no workspace labelled ' + CELL_LABEL}).",
+            file=sys.stderr,
+        )
+        return 7
+    if desk == "podium":
+        print("REFUSED: the centre does not descend into itself. Stand in a desk.", file=sys.stderr)
+        return 7
+    if desk not in DESKS:
+        print(f"REFUSED: '{desk or '(unlabelled)'}' is not one of the four desks {DESKS}.", file=sys.stderr)
+        return 7
+
+    inner = [f"{desk}.{corner}" for corner in DESKS]
+    print(f"descent target: {desk} := the cell within {desk}   (pane {pane_id}, workspace {workspace_id})")
+    print(f"  {desk} holds: {MEANING[desk]}")
+    print(f"  its centre : the question {desk} itself asks — planted by the human, by hand, as ever")
+    print(f"  its corners: {' · '.join(inner)}   (clockwise, same form, one scale in)")
+    print(f"  the cell above stays exactly as it is; {desk} does not leave its own corner.")
+    print("")
+    print("v1 reports and stops here. Nothing was created, nothing was written, nothing recorded.")
+    print("What opening it would cost, when Amihai attests the descent:")
+    print("  one workspace (label the-cell/" + desk + "), one layout.apply of the same score,")
+    print("  one plugin podium — and a question only he can plant in it.")
+    return 0
+
+
+if __name__ == "__main__":
+    try:
+        sys.exit(main())
+    except CellApiError as exc:
+        print(f"STOP: {exc}", file=sys.stderr)
+        sys.exit(6)

@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+# fixture: a deliberately-injected L2 violation — an executable that is
+# NOT a declared member of the seam manifest (census must FAIL)
+echo "undeclared-tool"

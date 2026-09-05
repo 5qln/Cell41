@@ -1,0 +1,114 @@
+{
+  "name": "R02-B1 human-driven cycle (commission §6.2 minimum transcript)",
+  "note": "pane ids w8:* as observed live (§3.2). pane.read revision is deliberately 0 in every tick while pane_info.revision varies — the §3.4 trap, encoded so the walker must not trust either revision field.",
+  "ticks": [
+    {
+      "note": "tick 1 — the plant (gate x, address '', attested) is already in the ledger; G is working",
+      "panes": [
+        {"pane_id": "w7:p1", "workspace_id": "w7", "tab_id": "t7", "terminal_id": "term_1", "agent_status": "unknown", "focused": false, "revision": 1, "label": null, "title": "deploy@srv1707555: ~"},
+        {"pane_id": "w8:p2", "workspace_id": "w8", "tab_id": "t8", "terminal_id": "term_2", "agent_status": "unknown", "focused": true, "revision": 0, "label": "podium"},
+        {"pane_id": "w8:p3", "workspace_id": "w8", "tab_id": "t8", "terminal_id": "term_3", "agent_status": "working", "focused": false, "revision": 2, "label": "G", "agent": "pi", "title": "π - the-cell"},
+        {"pane_id": "w8:p4", "workspace_id": "w8", "tab_id": "t8", "terminal_id": "term_4", "agent_status": "unknown", "focused": false, "revision": 1, "label": "V"},
+        {"pane_id": "w8:p5", "workspace_id": "w8", "tab_id": "t8", "terminal_id": "term_5", "agent_status": "unknown", "focused": false, "revision": 1, "label": "Q"},
+        {"pane_id": "w8:p6", "workspace_id": "w8", "tab_id": "t8", "terminal_id": "term_6", "agent_status": "unknown", "focused": false, "revision": 1, "label": "P"}
+      ],
+      "reads": {
+        "w8:p2": "",
+        "w8:p3": "π - the-cell\nG: working on y …\n",
+        "w8:p4": "deploy@srv1707555: ~/the-cell$ \n",
+        "w8:p5": "deploy@srv1707555: ~/the-cell$ \n",
+        "w8:p6": "↑6.0k ↓2.9k R9.7k CH5\n"
+      }
+    },
+    {
+      "note": "tick 2 — G goes idle with NEW output (the encoding bytes ∞0′ → ‖ enter the pane text)",
+      "panes": [
+        {"pane_id": "w7:p1", "workspace_id": "w7", "tab_id": "t7", "terminal_id": "term_1", "agent_status": "unknown", "focused": false, "revision": 1, "label": null, "title": "deploy@srv1707555: ~"},
+        {"pane_id": "w8:p2", "workspace_id": "w8", "tab_id": "t8", "terminal_id": "term_2", "agent_status": "unknown", "focused": true, "revision": 0, "label": "podium"},
+        {"pane_id": "w8:p3", "workspace_id": "w8", "tab_id": "t8", "terminal_id": "term_3", "agent_status": "idle", "focused": false, "revision": 2, "label": "G", "agent": "pi", "title": "π - the-cell"},
+        {"pane_id": "w8:p4", "workspace_id": "w8", "tab_id": "t8", "terminal_id": "term_4", "agent_status": "unknown", "focused": false, "revision": 1, "label": "V"},
+        {"pane_id": "w8:p5", "workspace_id": "w8", "tab_id": "t8", "terminal_id": "term_5", "agent_status": "unknown", "focused": false, "revision": 1, "label": "Q"},
+        {"pane_id": "w8:p6", "workspace_id": "w8", "tab_id": "t8", "terminal_id": "term_6", "agent_status": "unknown", "focused": false, "revision": 1, "label": "P"}
+      ],
+      "reads": {
+        "w8:p2": "",
+        "w8:p3": "π - the-cell\nG: gate y complete — ∞0′ → ‖\n",
+        "w8:p4": "deploy@srv1707555: ~/the-cell$ \n",
+        "w8:p5": "deploy@srv1707555: ~/the-cell$ \n",
+        "w8:p6": "↑6.0k ↓2.9k R9.7k CH5\n"
+      }
+    },
+    {
+      "note": "tick 3 — Q reports blocked (first blocked poll of its episode)",
+      "panes": [
+        {"pane_id": "w7:p1", "workspace_id": "w7", "tab_id": "t7", "terminal_id": "term_1", "agent_status": "unknown", "focused": false, "revision": 1, "label": null, "title": "deploy@srv1707555: ~"},
+        {"pane_id": "w8:p2", "workspace_id": "w8", "tab_id": "t8", "terminal_id": "term_2", "agent_status": "unknown", "focused": true, "revision": 0, "label": "podium"},
+        {"pane_id": "w8:p3", "workspace_id": "w8", "tab_id": "t8", "terminal_id": "term_3", "agent_status": "idle", "focused": false, "revision": 2, "label": "G", "agent": "pi", "title": "π - the-cell"},
+        {"pane_id": "w8:p4", "workspace_id": "w8", "tab_id": "t8", "terminal_id": "term_4", "agent_status": "unknown", "focused": false, "revision": 1, "label": "V"},
+        {"pane_id": "w8:p5", "workspace_id": "w8", "tab_id": "t8", "terminal_id": "term_5", "agent_status": "blocked", "focused": false, "revision": 1, "label": "Q"},
+        {"pane_id": "w8:p6", "workspace_id": "w8", "tab_id": "t8", "terminal_id": "term_6", "agent_status": "unknown", "focused": false, "revision": 1, "label": "P"}
+      ],
+      "reads": {
+        "w8:p2": "",
+        "w8:p3": "π - the-cell\nG: gate y complete — ∞0′ → ‖\n",
+        "w8:p4": "deploy@srv1707555: ~/the-cell$ \n",
+        "w8:p5": "deploy@srv1707555: ~/the-cell$ \n",
+        "w8:p6": "↑6.0k ↓2.9k R9.7k CH5\n"
+      }
+    },
+    {
+      "note": "tick 4 — Q still blocked: same episode, no second record",
+      "panes": [
+        {"pane_id": "w7:p1", "workspace_id": "w7", "tab_id": "t7", "terminal_id": "term_1", "agent_status": "unknown", "focused": false, "revision": 1, "label": null, "title": "deploy@srv1707555: ~"},
+        {"pane_id": "w8:p2", "workspace_id": "w8", "tab_id": "t8", "terminal_id": "term_2", "agent_status": "unknown", "focused": true, "revision": 0, "label": "podium"},
+        {"pane_id": "w8:p3", "workspace_id": "w8", "tab_id": "t8", "terminal_id": "term_3", "agent_status": "idle", "focused": false, "revision": 2, "label": "G", "agent": "pi", "title": "π - the-cell"},
+        {"pane_id": "w8:p4", "workspace_id": "w8", "tab_id": "t8", "terminal_id": "term_4", "agent_status": "unknown", "focused": false, "revision": 1, "label": "V"},
+        {"pane_id": "w8:p5", "workspace_id": "w8", "tab_id": "t8", "terminal_id": "term_5", "agent_status": "blocked", "focused": false, "revision": 1, "label": "Q"},
+        {"pane_id": "w8:p6", "workspace_id": "w8", "tab_id": "t8", "terminal_id": "term_6", "agent_status": "unknown", "focused": false, "revision": 1, "label": "P"}
+      ],
+      "reads": {
+        "w8:p2": "",
+        "w8:p3": "π - the-cell\nG: gate y complete — ∞0′ → ‖\n",
+        "w8:p4": "deploy@srv1707555: ~/the-cell$ \n",
+        "w8:p5": "deploy@srv1707555: ~/the-cell$ \n",
+        "w8:p6": "↑6.0k ↓2.9k R9.7k CH5\n"
+      }
+    },
+    {
+      "note": "tick 5 — an attestation record (G/y, by the human) has appeared in the ledger; Q still blocked",
+      "panes": [
+        {"pane_id": "w7:p1", "workspace_id": "w7", "tab_id": "t7", "terminal_id": "term_1", "agent_status": "unknown", "focused": false, "revision": 1, "label": null, "title": "deploy@srv1707555: ~"},
+        {"pane_id": "w8:p2", "workspace_id": "w8", "tab_id": "t8", "terminal_id": "term_2", "agent_status": "unknown", "focused": true, "revision": 0, "label": "podium"},
+        {"pane_id": "w8:p3", "workspace_id": "w8", "tab_id": "t8", "terminal_id": "term_3", "agent_status": "idle", "focused": false, "revision": 2, "label": "G", "agent": "pi", "title": "π - the-cell"},
+        {"pane_id": "w8:p4", "workspace_id": "w8", "tab_id": "t8", "terminal_id": "term_4", "agent_status": "unknown", "focused": false, "revision": 1, "label": "V"},
+        {"pane_id": "w8:p5", "workspace_id": "w8", "tab_id": "t8", "terminal_id": "term_5", "agent_status": "blocked", "focused": false, "revision": 1, "label": "Q"},
+        {"pane_id": "w8:p6", "workspace_id": "w8", "tab_id": "t8", "terminal_id": "term_6", "agent_status": "unknown", "focused": false, "revision": 1, "label": "P"}
+      ],
+      "reads": {
+        "w8:p2": "",
+        "w8:p3": "π - the-cell\nG: gate y complete — ∞0′ → ‖\n",
+        "w8:p4": "deploy@srv1707555: ~/the-cell$ \n",
+        "w8:p5": "deploy@srv1707555: ~/the-cell$ \n",
+        "w8:p6": "↑6.0k ↓2.9k R9.7k CH5\n"
+      }
+    },
+    {
+      "note": "tick 6 — the blocked desk leaves blocked (back to unknown, the live normal for a bare desk)",
+      "panes": [
+        {"pane_id": "w7:p1", "workspace_id": "w7", "tab_id": "t7", "terminal_id": "term_1", "agent_status": "unknown", "focused": false, "revision": 1, "label": null, "title": "deploy@srv1707555: ~"},
+        {"pane_id": "w8:p2", "workspace_id": "w8", "tab_id": "t8", "terminal_id": "term_2", "agent_status": "unknown", "focused": true, "revision": 0, "label": "podium"},
+        {"pane_id": "w8:p3", "workspace_id": "w8", "tab_id": "t8", "terminal_id": "term_3", "agent_status": "idle", "focused": false, "revision": 2, "label": "G", "agent": "pi", "title": "π - the-cell"},
+        {"pane_id": "w8:p4", "workspace_id": "w8", "tab_id": "t8", "terminal_id": "term_4", "agent_status": "unknown", "focused": false, "revision": 1, "label": "V"},
+        {"pane_id": "w8:p5", "workspace_id": "w8", "tab_id": "t8", "terminal_id": "term_5", "agent_status": "unknown", "focused": false, "revision": 1, "label": "Q"},
+        {"pane_id": "w8:p6", "workspace_id": "w8", "tab_id": "t8", "terminal_id": "term_6", "agent_status": "unknown", "focused": false, "revision": 1, "label": "P"}
+      ],
+      "reads": {
+        "w8:p2": "",
+        "w8:p3": "π - the-cell\nG: gate y complete — ∞0′ → ‖\n",
+        "w8:p4": "deploy@srv1707555: ~/the-cell$ \n",
+        "w8:p5": "deploy@srv1707555: ~/the-cell$ \n",
+        "w8:p6": "↑6.0k ↓2.9k R9.7k CH5\n"
+      }
+    }
+  ]
+}

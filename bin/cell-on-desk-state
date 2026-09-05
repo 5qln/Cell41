@@ -1,0 +1,130 @@
+#!/usr/bin/env python3
+"""cell-on-desk-state — the conductor's ears. Event hook for pane_agent_status_changed.
+
+WHAT IT IS FOR: the gate is "a desk finished and the human has not yet attested it". herdr
+already knows when a desk's agent changes status; this records those transitions for the
+cell's desks so the walk has a history that is not a screenshot of a pane.
+
+TWO SPELLINGS, ONE EVENT (verified 2026-08-24): the manifest registers the hook in the DOTTED
+namespace (`pane.agent_status_changed`, which is also how socket subscriptions name it), while
+the push event stream's own `EventKind` and the payload's `type` use UNDERSCORES
+(`pane_agent_status_changed`). Which form arrives in HERDR_PLUGIN_EVENT is not documented, so
+this hook normalizes both before comparing. A filter that silently drops every event because it
+expected the other spelling is the worst possible bug here: it looks exactly like "nothing
+happened".
+
+WHAT IT REFUSES TO BE
+  * It never mutates: no pane.*, no agent.*, no layout.*, no plugin.* write call. Reads only.
+  * It never writes question.md. The centre is the human's.
+  * It records ONLY panes inside the workspace labelled "the-cell". Events from any other
+    workspace — Amihai's own w1 and his Pi above all — are dropped unread and unlogged.
+    His session is not the cell's business.
+  * It never speaks: an event hook that prints or fails loudly becomes noise in the server
+    log at machine frequency. Every path exits 0. Errors go to a capped file, never stderr.
+  * It never blocks: one short socket timeout, no retries, no waiting.
+
+Exit code: always 0. This is deliberate, not sloppiness — a hook is not a gate.
+"""
+from __future__ import annotations
+
+import json
+import os
+import sys
+import time
+
+sys.path.insert(0, os.path.dirname(os.path.realpath(__file__)))
+
+CELL_LABEL = "the-cell"
+DESKS = ("G", "Q", "P", "V")
+MAX_LOG_BYTES = 2 * 1024 * 1024  # rotate once, keep one .1 — a hook may not eat the disk
+
+
+def note_error(state: str, message: str) -> None:
+    try:
+        path = os.path.join(state, "hook-errors.log")
+        if os.path.exists(path) and os.path.getsize(path) > 256 * 1024:
+            os.replace(path, path + ".1")
+        with open(path, "a", encoding="utf-8") as handle:
+            handle.write(f"{time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime())} {message}\n")
+    except OSError:
+        pass
+
+
+def append(path: str, entry: dict) -> None:
+    if os.path.exists(path) and os.path.getsize(path) > MAX_LOG_BYTES:
+        os.replace(path, path + ".1")
+    with open(path, "a", encoding="utf-8") as handle:
+        handle.write(json.dumps(entry, separators=(",", ":"), sort_keys=True) + "\n")
+
+
+def same_event(name: str) -> bool:
+    """True if `name` is this hook's event in either namespace (dotted or underscored)."""
+    return name.replace(".", "_") == "pane_agent_status_changed"
+
+
+def run() -> None:
+    from _cell_api import CellApiError, call, state_dir
+
+    state = state_dir()
+    try:
+        kind = os.environ.get("HERDR_PLUGIN_EVENT", "")
+        raw = os.environ.get("HERDR_PLUGIN_EVENT_JSON", "")
+        if kind and not same_event(kind):
+            return
+        if not raw:
+            return
+        envelope = json.loads(raw)
+        # The hook may receive the EventEnvelope {event, data} or the EventData directly.
+        data = envelope.get("data", envelope) if isinstance(envelope, dict) else {}
+        if data.get("type") and not same_event(str(data["type"])):
+            return
+        pane_id = data.get("pane_id")
+        workspace_id = data.get("workspace_id")
+        if not pane_id or not workspace_id:
+            return
+
+        cell_id = None
+        for workspace in call("workspace.list").get("workspaces", []):
+            if workspace.get("label") == CELL_LABEL:
+                cell_id = workspace.get("workspace_id")
+                break
+        if cell_id is None or workspace_id != cell_id:
+            return  # not the cell — dropped unread, and nothing is written
+
+        label = ""
+        try:
+            label = (call("pane.get", {"pane_id": pane_id}).get("pane", {}).get("label") or "").strip()
+        except CellApiError:
+            label = ""
+        if label not in DESKS:
+            return  # the podium and anything unlabelled are not desks; the centre keeps no log
+
+        append(
+            os.path.join(state, "desk-state.jsonl"),
+            {
+                "ts_utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+                "desk": label,
+                "pane_id": pane_id,
+                "workspace_id": workspace_id,
+                "agent_status": data.get("agent_status"),
+                "agent": data.get("agent"),
+                "display_agent": data.get("display_agent"),
+                "state_labels": data.get("state_labels") or {},
+                "title": data.get("title"),
+            },
+        )
+    except CellApiError as exc:
+        note_error(state, f"api: {exc}")
+    except (OSError, ValueError, TypeError) as exc:
+        note_error(state, f"{type(exc).__name__}: {exc}")
+
+
+if __name__ == "__main__":
+    try:
+        run()
+    except Exception as exc:  # noqa: BLE001 — a hook must never fail loudly
+        try:
+            note_error(os.environ.get("HERDR_PLUGIN_STATE_DIR", "/tmp"), f"fatal {type(exc).__name__}: {exc}")
+        except Exception:  # noqa: BLE001
+            pass
+    sys.exit(0)

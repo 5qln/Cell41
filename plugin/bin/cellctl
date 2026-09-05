@@ -1,0 +1,4 @@
+#!/bin/sh
+# thin seam wrapper — the attested cellctl lives in its round; this keeps every
+# manifest command inside plugin_root/bin (the law) while exec'ing the seam.
+exec /home/deploy/the-cell/rounds/R07-integration/authored/cellctl "$@"

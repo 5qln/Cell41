@@ -1,0 +1,50 @@
+# seam-declaration-extension.patch — the enforcement reconciliation's data
+# extension to the R07 seam contract (surface_contract.py).
+#
+# WHAT THIS IS: R07's own seam anticipates this exact edit — the census comment in
+# surface_contract.py reads: "the W5 bindings extend it — an extension not declared
+# here = FAIL".  The bindings round therefore EXTENDS the declared data (entry-point
+# census, the declared-importers list, the extension roots) — it re-authorizes no
+# seam logic and no engine module.  The three pre-integration findings are re-pointed
+# by the file replacements under ./enforcement/ (never allowlisted, never commented
+# out); this patch only DECLARES the new seam paths so the suite reads the re-pointed
+# world as exactly what it is.
+#
+# APPLICATION (by the human, data only): apply this patch to
+#   /home/deploy/the-cell/rounds/R07-integration/authored/surface_contract.py
+# (patch -p1 from the cell root).  Nothing pins surface_contract.py's own bytes —
+# the seam verifies its import chain, and this edit touches declarations only (K5:
+# the census is declared data, one place to change, diff-able).
+#
+# HUNK 1 — the census declares the new podium renderer executable (the podium
+# re-point's bin) and the extension package location is declared as the W5
+# extension root (token-scanned under the existing desks root; declared here for
+# the record, K5).
+# HUNK 2 — the census declares the re-pointed cell-attest as a seam importer: its
+# ledger write now goes THROUGH the pinned contract (import surface_contract —
+# the import IS the pin check), replacing the direct unpinned fractal_ledger
+# import (C4 finding iii).  Declared, never hidden.
+
+--- a/rounds/R07-integration/authored/surface_contract.py
++++ b/rounds/R07-integration/authored/surface_contract.py
+@@ SEAM_MANIFEST["entry_points"] @@
+         {"path": os.path.join(_PLUGIN_BIN, "cell-on-desk-state"),
+          "role": "desk state read (declared bin)"},
++        {"path": os.path.join(_PLUGIN_BIN, "cell-podium"),
++         "role": "the podium's read-only trail renderer (the bindings round's podium re-point — shells cellctl trail, one call)"},
+         {"path": os.path.join(_PLUGIN_BIN, "_cell_api.py"),
+          "role": "the plugin's shared api module (declared, read from disk)"},
+@@ SEAM_MANIFEST["import_allowed"] @@
+         os.path.join(_HERE, "enforce.py"),
+         os.path.join(_HERE, "selftest.py"),
++        os.path.join(_PLUGIN_BIN, "cell-attest"),
+     ),
+@@ L1_DECLARATION["extension_roots"] @@
+-    "extension_roots": (),
++    "extension_roots": (
++        {"name": "pi-cell",
++         "path": os.path.join(_DESKS, "S", ".pi", "extensions",
++                              "pi-cell"),
++         "files": None, "executables": False, "required": False,
++         "doc": "the conductor binding package (the bindings round, W5's sibling) — TS sources, token-scanned via the desks root; declared here for the record (K5)"},
++    ),

@@ -1,0 +1,72 @@
+{
+  "workspace": {
+    "label": "the-cell",
+    "cwd": "/home/deploy/the-cell",
+    "focus": false
+  },
+  "root": {
+    "type": "split",
+    "direction": "right",
+    "ratio": 0.3,
+    "first": {
+      "type": "pane",
+      "label": "podium",
+      "cwd": "/home/deploy/the-cell/nodes/_",
+      "command": [
+        "watch",
+        "-n",
+        "2",
+        "/home/deploy/the-cell/plugin/bin/cell-podium",
+        "--ledger",
+        "/home/deploy/the-cell/state/gates.jsonl",
+        "--trail",
+        "/home/deploy/the-cell/state/trail.jsonl"
+      ]
+    },
+    "second": {
+      "type": "split",
+      "direction": "down",
+      "ratio": 0.3,
+      "first": {
+        "type": "pane",
+        "label": "S",
+        "cwd": "/home/deploy/the-cell/desks/S"
+      },
+      "second": {
+        "type": "split",
+        "direction": "down",
+        "ratio": 0.5,
+        "first": {
+          "type": "split",
+          "direction": "right",
+          "ratio": 0.5,
+          "first": {
+            "type": "pane",
+            "label": "G",
+            "cwd": "/home/deploy/the-cell/desks/G"
+          },
+          "second": {
+            "type": "pane",
+            "label": "Q",
+            "cwd": "/home/deploy/the-cell/desks/Q"
+          }
+        },
+        "second": {
+          "type": "split",
+          "direction": "right",
+          "ratio": 0.5,
+          "first": {
+            "type": "pane",
+            "label": "V",
+            "cwd": "/home/deploy/the-cell/desks/V"
+          },
+          "second": {
+            "type": "pane",
+            "label": "P",
+            "cwd": "/home/deploy/the-cell/desks/P"
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,214 @@
+{
+  "contract_version": 1,
+  "binding": "pi-cell",
+  "governing_line": "the soft layer must never contain driving logic — it only points at the engine. Slash commands are the seam. One surface, two callers.",
+  "what": "The conductor binding's whole surface, declared as DATA: thirteen independent studs, each exactly one cellctl subcommand (C1), no orchestration sequence anywhere in this layer (C8). A new stud = a new row here, zero re-authoring of the seam or the firmware. The orchestration METHOD (which commands, in what order, under what soft config) is never in this table — it lives in the brick data the engine reads (scenario + spec + soft config).",
+  "cellctl": {
+    "env": "CELLCTL_BIN",
+    "default": "/home/deploy/the-cell/rounds/R07-integration/authored/cellctl",
+    "note": "env-only config; the extension's ONLY subprocess is this binary (K1). HERDR_BIN is declared beside it (see src/cellctl.mjs) and read by no code path — the binding never shells to the platform CLI."
+  },
+  "serialization": "every cellctl report is forwarded byte-for-byte: the binding re-serializes nothing, never normalises (K2); exit 0 = the declared success status, any other exit is carried as an error with the raw report text — INCONCLUSIVE never reads clean (C6).",
+  "tools": [
+    {
+      "name": "word",
+      "subcommand": "word",
+      "label": "Word",
+      "description": "Decode a scenario file — the word over the desks and its signed paths — through cellctl word (one call). Returns the decode report verbatim; absent/empty/malformed reads its honest status with the reason, never a substituted value.",
+      "promptSnippet": "Decode a scenario word through the seam",
+      "promptGuidelines": [
+        "Use word when a scenario file (or inline scenario JSON) must be decoded before planning."
+      ],
+      "params": [
+        { "name": "scenario", "kind": "string", "flag": "--scenario", "optional": true, "description": "the scenario file path (or omit and pass json)" },
+        { "name": "json", "kind": "string", "flag": "--json", "optional": true, "description": "the scenario as inline JSON (an alternative to the file path)" }
+      ]
+    },
+    {
+      "name": "plan",
+      "subcommand": "plan",
+      "label": "Plan",
+      "description": "Derive the sign-walk of an already-DECODED scenario through cellctl plan (one call, pure — no socket, no ledger). The scenario argument is a JSON file holding word.decode_scenario's \"scenario\" object.",
+      "promptSnippet": "Plan a decoded scenario's sign-walk through the seam",
+      "promptGuidelines": [
+        "Use plan over a decoded scenario file — plan never re-decodes the raw word."
+      ],
+      "params": [
+        { "name": "scenario", "kind": "string", "optional": false, "description": "a JSON file holding the decoded scenario" }
+      ]
+    },
+    {
+      "name": "materialize",
+      "subcommand": "materialize",
+      "label": "Materialize",
+      "description": "Emit (or with verify=true read back) a decoded word's child cells through cellctl materialize (one call). out is the output directory; visits optionally carries a plan report's visits list.",
+      "promptSnippet": "Materialize a decoded word's cells through the seam",
+      "promptGuidelines": [
+        "Use materialize with a decoded scenario and an output directory; use verify=true to read the materialized word back instead of emitting."
+      ],
+      "params": [
+        { "name": "scenario", "kind": "string", "optional": false, "description": "a JSON file holding the decoded scenario" },
+        { "name": "out", "kind": "string", "flag": "--out", "optional": false, "description": "the output directory" },
+        { "name": "visits", "kind": "string", "flag": "--visits", "optional": true, "description": "a plan JSON (navigate.plan_walk report) covering the loop-expanded visits" },
+        { "name": "verify", "kind": "boolean", "flag": "--verify", "optional": true, "description": "read the materialized word back instead of emitting" }
+      ]
+    },
+    {
+      "name": "conduct",
+      "subcommand": "conduct",
+      "label": "Conduct",
+      "description": "The composite run — the load-bearing stud. Conduction = call conduct; the conductor never re-derives the walk. One cellctl call binds the engine's own orchestrate.main over the cell spec (data); the binding adds no sequence of its own (C8). With plan_only=true and a scenario path it makes the declared decode+plan pair, byte-identical to the direct calls (C3). The seam's run lock is inherited by construction (C5).",
+      "promptSnippet": "Run the conducted cycle through the seam",
+      "promptGuidelines": [
+        "Use conduct for the composite run over the live desks — one call, never a hand-built walk.",
+        "Use conduct with plan_only=true when only the plan is wanted (decode + plan, no run, no lock)."
+      ],
+      "params": [
+        { "name": "spec", "kind": "string", "flag": "--spec", "optional": true, "description": "the live cell spec (spec.json — the declared data)" },
+        { "name": "max_steps", "kind": "integer", "flag": "--max-steps", "optional": true, "description": "the caller's step budget (overrides the spec's)" },
+        { "name": "plan_only", "kind": "boolean", "flag": "--plan-only", "optional": true, "description": "decode + plan only — no run, no lock (C3)" },
+        { "name": "scenario", "kind": "string", "flag": "--scenario", "optional": true, "description": "with plan_only=true: the scenario file to decode + plan" }
+      ]
+    },
+    {
+      "name": "walk",
+      "subcommand": "walk",
+      "label": "Walk",
+      "description": "The raw sign-walk over the live wiring (one call: the engine's navigate.walk over the attested live world). The low-level surface — conduct is the composite that also emits boot/steps/run-end.",
+      "promptSnippet": "Walk a decoded word against the live wiring through the seam",
+      "promptGuidelines": [
+        "Use walk for the raw per-step trace; prefer conduct for the composite run."
+      ],
+      "params": [
+        { "name": "spec", "kind": "string", "flag": "--spec", "optional": false, "description": "the live cell spec" },
+        { "name": "max_steps", "kind": "integer", "flag": "--max-steps", "optional": true, "description": "the caller's step budget" }
+      ]
+    },
+    {
+      "name": "config",
+      "subcommand": "config",
+      "label": "Config",
+      "description": "Read the soft config through cellctl config (one call, read-only). An absent file reads the engine's declared defaults — honestly, never a substituted value.",
+      "promptSnippet": "Read the soft config through the seam",
+      "promptGuidelines": [
+        "Use config to read the per-desk emphasis/voice/model and budget — read-only, never to write it."
+      ],
+      "params": [
+        { "name": "path", "kind": "string", "flag": "--path", "optional": true, "description": "the soft.json path (absent = the engine's declared defaults)" }
+      ]
+    },
+    {
+      "name": "cost",
+      "subcommand": "cost",
+      "label": "Cost",
+      "description": "Read the declared spend through cellctl cost (one call) — the engine's own number from the ledger records, never recomputed in the binding.",
+      "promptSnippet": "Read the declared spend through the seam",
+      "promptGuidelines": [
+        "Use cost with a ledger path and a mode; soft_config optionally adds the per-desk charges."
+      ],
+      "params": [
+        { "name": "ledger", "kind": "string", "flag": "--ledger", "optional": false, "description": "the ledger path" },
+        { "name": "mode", "kind": "string", "flag": "--mode", "optional": false, "description": "the spend mode" },
+        { "name": "soft_config", "kind": "string", "flag": "--soft-config", "optional": true, "description": "optional soft.json for the per-desk charges" }
+      ]
+    },
+    {
+      "name": "states",
+      "subcommand": "states",
+      "label": "States",
+      "description": "The desks' real states, read-only (one call: the engine's Orchestrator.read_states). An absent socket reads {\"status\":\"absent\"} honestly — the only desk-facing surface, never a fixture stand-in (C2).",
+      "promptSnippet": "Read the desks' real states through the seam",
+      "promptGuidelines": [
+        "Use states to observe the desks — read-only; the write side is never exposed."
+      ],
+      "params": [
+        { "name": "spec", "kind": "string", "flag": "--spec", "optional": false, "description": "the live cell spec" }
+      ]
+    },
+    {
+      "name": "descent",
+      "subcommand": "descent",
+      "label": "Descent",
+      "description": "The address grammar — one op per invocation, one engine call (zoom-in / zoom-out / path-between / validate-path / validate-word).",
+      "promptSnippet": "Run one address-grammar op through the seam",
+      "promptGuidelines": [
+        "Use descent for exactly one address op per call: path-between (--from/--to), zoom-in (--address/--letter), zoom-out (--address), validate-path (--path), validate-word (--address)."
+      ],
+      "params": [
+        { "name": "op", "kind": "enum", "values": ["path-between", "zoom-in", "zoom-out", "validate-path", "validate-word"], "optional": false, "description": "the address-grammar op" },
+        { "name": "from", "kind": "string", "flag": "--from", "optional": true, "description": "path-between: the from address" },
+        { "name": "to", "kind": "string", "flag": "--to", "optional": true, "description": "path-between: the to address" },
+        { "name": "address", "kind": "string", "flag": "--address", "optional": true, "description": "zoom-in / zoom-out / validate-word: the address" },
+        { "name": "letter", "kind": "string", "flag": "--letter", "optional": true, "description": "zoom-in: the daughter letter" },
+        { "name": "path", "kind": "string", "flag": "--path", "optional": true, "description": "validate-path: the signed path text" }
+      ]
+    },
+    {
+      "name": "decode",
+      "subcommand": "decode",
+      "label": "Decode",
+      "description": "Decode one phase through the Grammar (one call: the engine's decoder.decode — D1: filled symbol slots as references, never text). The report carries corruption detections, never an authenticity verdict (K3).",
+      "promptSnippet": "Decode one phase through the Grammar seam",
+      "promptGuidelines": [
+        "Use decode with a phase letter and optional values/context/trail/claims JSON (inline or file paths)."
+      ],
+      "params": [
+        { "name": "phase", "kind": "enum", "values": ["S", "G", "Q", "P", "V"], "flag": "--phase", "optional": false, "description": "the phase letter" },
+        { "name": "context", "kind": "string", "flag": "--context", "optional": true, "description": "context JSON — inline or a file path" },
+        { "name": "values", "kind": "string", "flag": "--values", "optional": true, "description": "values JSON — inline or a file path" },
+        { "name": "trail", "kind": "string", "flag": "--trail", "optional": true, "description": "trail JSON — inline or a file path" },
+        { "name": "lenses", "kind": "string", "flag": "--lenses", "optional": true, "description": "comma-separated lens ids" },
+        { "name": "claims", "kind": "string", "flag": "--claims", "optional": true, "description": "claims JSON — inline or a file path" },
+        { "name": "cell", "kind": "string", "flag": "--cell", "optional": true, "description": "the cell address" },
+        { "name": "inserted_answer", "kind": "boolean", "flag": "--inserted-answer", "optional": true, "description": "flag an inserted answer" }
+      ]
+    },
+    {
+      "name": "compile",
+      "subcommand": "compile",
+      "label": "Compile",
+      "description": "Emit a phase's §3.6 surface through the Grammar (one call: the engine's compiler.emit) — RAW bytes, byte-exact, never normalised (K2).",
+      "promptSnippet": "Emit a phase's surface through the Grammar seam",
+      "promptGuidelines": [
+        "Use compile with a phase letter and the slot texts (JSON, inline or a file path)."
+      ],
+      "params": [
+        { "name": "phase", "kind": "enum", "values": ["S", "G", "Q", "P", "V"], "flag": "--phase", "optional": false, "description": "the phase letter" },
+        { "name": "slots", "kind": "string", "flag": "--slots", "optional": false, "description": "the slot texts JSON — inline or a file path" },
+        { "name": "lenses", "kind": "string", "flag": "--lenses", "optional": true, "description": "comma-separated lens ids" },
+        { "name": "trail", "kind": "string", "flag": "--trail", "optional": true, "description": "the trail report JSON — inline or a file path" },
+        { "name": "cell", "kind": "string", "flag": "--cell", "optional": true, "description": "the cell address" },
+        { "name": "surface_only", "kind": "boolean", "flag": "--surface-only", "optional": true, "description": "emit the surface without the jacket layers" }
+      ]
+    },
+    {
+      "name": "check",
+      "subcommand": "check",
+      "label": "Check",
+      "description": "The 48-item validation of a produced surface (one call: the engine's compiler.validate). HC-1/HC-2 are INCONCLUSIVE by design — a machine can never report a fully clean artifact (K3); exit 0 means PASS only.",
+      "promptSnippet": "Validate a produced surface through the Grammar seam",
+      "promptGuidelines": [
+        "Use check on any produced surface artifact (JSON, inline or a file path) with an optional cycle."
+      ],
+      "params": [
+        { "name": "artifact", "kind": "string", "optional": false, "description": "the artifact JSON — inline or a file path" },
+        { "name": "cycle", "kind": "string", "flag": "--cycle", "optional": true, "description": "the cycle JSON — inline or a file path" }
+      ]
+    },
+    {
+      "name": "trail",
+      "subcommand": "trail",
+      "label": "Trail",
+      "description": "The readable trail — the human's window (one call: the engine's trail.read_trail; audit=true adds the dependency audit). Absent/empty/damaged reads its honest status, never clean.",
+      "promptSnippet": "Read the formation trail through the seam",
+      "promptGuidelines": [
+        "Use trail with the ledger and trail paths; audit=true runs the dependency audit instead."
+      ],
+      "params": [
+        { "name": "ledger", "kind": "string", "flag": "--ledger", "optional": false, "description": "the ledger path" },
+        { "name": "trail", "kind": "string", "flag": "--trail", "optional": false, "description": "the trail path" },
+        { "name": "audit", "kind": "boolean", "flag": "--audit", "optional": true, "description": "the dependency audit instead of the readable trail" }
+      ]
+    }
+  ]
+}

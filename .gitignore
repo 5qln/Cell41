@@ -1,0 +1,41 @@
+# runtime state — never committed
+state/
+
+# centres are human-planted; the repo ships no question and none is ever committed
+**/question.md
+
+# python
+__pycache__/
+*.pyc
+
+# credentials / environment
+.env
+*.env
+
+# backups
+*.bak
+*.v1.bak
+
+# logs
+*.log
+
+# deployment backups / snapshots / generated (live box only)
+.guide-backups/
+.r08-backup-*/
+.w3-backup-*/
+attic/
+*.bak-*
+herdr-api.schema.json
+cell.pane-list.json
+cell.snapshot.json
+snapshot-post-update.json
+cell.layout.export.json
+cell.layout.export.post-swap.json
+*herdr-status.txt
+cell.herdr-status.txt
+integration-status.txt
+agent-manifests-*.txt
+TEST-ME.txt
+schema.err
+.new-podium-pane-id
+event-grammar-raw.txt

@@ -1,0 +1,45 @@
+{
+  "provenance": {
+    "authored_by": "hermes-amihai [A]",
+    "date": "2026-08-24",
+    "derived_from": "cell.yaml (the human-readable score) — same tree, machine form",
+    "why_this_file_exists": "cell-begin runs on the host with python3 stdlib only; there is no YAML parser there. The score stays cell.yaml for reading; this is the exact LayoutNode root that layout.apply receives. If the two ever disagree, cell.yaml is the score and this file is the bug.",
+    "layout_node_contract": "request/$defs/LayoutNode, protocol 20, herdr 0.8.2. split requires {type,direction,ratio,first,second}; ratio = share of the FIRST child (verified 0.30 -> 28/94 = 0.298).",
+    "law": "podium = non-shell viewer at left 30% (sealed center); desks G,Q,P,V clockwise from top-left; no agents; never 3+1, never 6+1."
+  },
+  "workspace": {
+    "label": "the-cell",
+    "cwd": "/home/deploy/the-cell",
+    "focus": false
+  },
+  "root": {
+    "type": "split",
+    "direction": "right",
+    "ratio": 0.3,
+    "first": {
+      "type": "pane",
+      "label": "podium",
+      "cwd": "/home/deploy/the-cell",
+      "command": ["watch", "-n", "2", "cat", "/home/deploy/the-cell/question.md"]
+    },
+    "second": {
+      "type": "split",
+      "direction": "down",
+      "ratio": 0.5,
+      "first": {
+        "type": "split",
+        "direction": "right",
+        "ratio": 0.5,
+        "first": {"type": "pane", "label": "G", "cwd": "/home/deploy/the-cell"},
+        "second": {"type": "pane", "label": "Q", "cwd": "/home/deploy/the-cell"}
+      },
+      "second": {
+        "type": "split",
+        "direction": "right",
+        "ratio": 0.5,
+        "first": {"type": "pane", "label": "V", "cwd": "/home/deploy/the-cell"},
+        "second": {"type": "pane", "label": "P", "cwd": "/home/deploy/the-cell"}
+      }
+    }
+  }
+}

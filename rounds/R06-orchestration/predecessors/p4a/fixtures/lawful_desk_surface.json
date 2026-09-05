@@ -1,0 +1,25 @@
+{
+ "name": "P4a lawful desk surface — desk G announces the full §3.6 contract; every equation byte-exact, decoding verbatim, slots filled, lenses targeting the parent output (target: Y, OUTPUT_SYMBOL[G])",
+ "claim": "parse_surface reads it lawful with every required section; the declared slots parse to references only (sha256 + byte length, never the text); the slot values never appear in the parse result",
+ "desk": "G",
+ "surface": "⟦SURFACE v1⟧\nLAW: H = ∞0 | A = K\nCYCLE: S → G → Q → P → V\nEQUATIONS:\nS = ∞0 → ?\nG = α ≡ {α'}\nQ = φ ⋂ Ω\nP = δE/δV → ∇\nV = (L ∩ G → B'') → ∞0'\nOUTPUTS: S→X G→Y Q→Z P→A V→B+B''+∞0'\nHOLOGRAPHIC: XY := X within Y | X, Y ∈ {S, G, Q, P, V}\nCOMPLETION: No V without ∞0'\nCORRUPTION: L1 L2 L3 L4 V∅\nCENTER: not a sixth phase — coherence only\nPHASE: G\nEQUATION: G = α ≡ {α'}\nOUTPUT: Y (Validated Pattern)\nCONTEXT IN: X\nCONTEXT OUT: X + α + Y\nDECODING:\n1. RECEIVE X — the validated question is the input.\n2. SEEK α — within X, what is the irreducible core? Remove it and X collapses.\n3. TEST ≡ (Identity Preservation) — does α remain unchanged across expressions?\n4. FIND {α'} — where does α echo at other scales? Each echo must be self-similar to α.\n5. VALIDATE Y — α is named, ≡ holds, {α'} confirm across scales.\nSLOTS:\nX: the question the cycle opened — ∞0′ → ‖\nα: the irreducible core of the question\n{α'}: the echoes of the core across scales\nY: the validated pattern that α is named and {α'} confirm\nCOMPILED: Y\nGATE: y\nSYMBOLS:\nS: Start | ∞0 → ?\nG: Growth | α ≡ {α'}\nX: Validated Spark | The confirmed output of S — a genuine question, not a manufactured one\nα: Core Essence | The irreducible pattern within X; remove it and X collapses\n{α'}: Self-Similar Expressions | The different forms α takes across scales, domains, and contexts\nY: Validated Pattern | The confirmed output of G — α has been found, tested, and echoed\n≡: Identity Preservation | α remains identical across all expressions\n→: Context-dependent | Emergence (in S), Reveals (in P), Creates (in V), Leads to (general)\nLENSES:\nGS α≡{α'} through openness: What unknown still lives within the pattern? — target: Y\nGQ α≡{α'} through resonance: Which echoes carry authentic signature vs. resemblance? — target: Y\nTRACE:\nX :: X\nα :: α\nY :: Y\n⟦END SURFACE⟧\n",
+ "expected_slot_refs": {
+  "X": {
+   "ref": "sha256:8fd55e3c622c54145f889140629437cfe7c8caa18869afd1ce1cb1f49ff714bd",
+   "len": 49
+  },
+  "α": {
+   "ref": "sha256:b06416edc2a5bf96f00c3b46be3f7d6f2b0ae9eef40af7a82f3d1bb40364536b",
+   "len": 36
+  },
+  "{α'}": {
+   "ref": "sha256:13262285d0825433116f7a44c500ae70503818c35a061c6b3c3175038dbd7f0b",
+   "len": 36
+  },
+  "Y": {
+   "ref": "sha256:2c380d3de57ed25359f8949079bf457f0f1006c316d7dbac6a85e0b6dc82a3b9",
+   "len": 56
+  }
+ },
+ "expected_fail_items": []
+}

@@ -1,0 +1,284 @@
+#!/usr/bin/env python3
+"""cell-attest — record the human's attestation as a §5.1 ledger record.
+
+RE-POINTED (the bindings round, C4 finding iii): two changes, nothing
+else moved.
+
+  (1) the ledger now arrives THROUGH THE DECLARED SEAM PATH — the
+      sha-pinned surface contract (R07) instead of a direct, unpinned
+      fractal_ledger import.  The import IS the pin check: a drifted or
+      missing pinned file refuses the import (ImportError) and the
+      attestation reports INCONCLUSIVE instead of writing through an
+      unverified module.  The seam manifest declares this file as an
+      importer (see the seam-declaration extension), so the census
+      reads the path as declared — never hidden.
+
+  (2) the herdr reads (workspace list, pane list, pane get) are
+      re-served by the REDUCED _cell_api read surface (platform CLI
+      read verbs, no socket) — finding i of the same criterion.
+
+LAW (maturation-log 001 · SEAL-STRICTNESS, his words: "for a start its
+ok that i need to be at the keyboard"): this refuses to run unless
+stdin AND stdout are a real TTY.  An attestation typed by a machine is
+not an attestation.  plugin.action.invoke over the socket — by me, by
+the sibling, by Pi — reaches only this refusal.  No flag, no env var,
+no override path.
+
+The seal is "a machine may not author the human's word", NOT "a TTY is
+required": the ledger record is channel-agnostic.  Today the human's
+word arrives at this keyboard; a future voice-derived attestation must
+land as the same `attestation_ref` field, never a separate mechanism.
+This binary is one adapter over the ledger, not the definition of
+attestation.
+
+WHAT IT WRITES, AND WHERE
+  state/gates.jsonl only — one append-only §5.1 record per attestation,
+  written THROUGH the pinned B0 ledger module (the seam's own object):
+  hash-chained, fsync, single-writer.  It NEVER writes question.md.
+  The question is his, planted by his hands (cell-plant).  The
+  question's sha256 is the payload_ref — the attestation is bound to
+  the exact question that stood at that moment, without the ledger
+  becoming a second copy of the centre.
+
+USAGE
+  cell-attest S            → the plant / podium: address "", gate x (the codex Start)
+  cell-attest G|Q|P|V      → a desk, by its codex gate: G→y, Q→z, P→a, V→b
+  cell-attest              → resolves the position from the invocation context (run it IN the pane)
+
+WHY THE ARGUMENT EXISTS: the context path depends on the platform
+exporting the pane identity (or the plugin context JSON) into the
+pane's shell.  That holds for a plugin-invoked action; it does NOT hold
+in a plain SSH session, and Amihai works from an iPad over SSH.
+Without the argument, his own hands would be the one path that could
+not reach this command — which would make the seal a wall instead of a
+door.  The TTY guard is unchanged: the argument says WHICH position,
+never WHO is typing.
+
+v4 (R08 bindings): reads re-served over the reduced _cell_api surface
+(no socket); the ledger module is the seam contract's pinned object.
+The TTY guard, the seal, the exit codes, and the record fields are
+unchanged.
+
+Exit codes
+  0  attestation recorded
+  2  no position could be resolved (no argument and nothing in the invocation context)
+  4  REFUSED: no human TTY (a machine tried to attest)
+  5  aborted by the human (empty word) — nothing recorded
+  6  a platform read failed — nothing recorded
+  7  REFUSED: the target lies outside the cell
+  8  REFUSED: no cell.node.json — the node is undeclared (no default, no fallback)
+"""
+from __future__ import annotations
+
+import hashlib
+import json
+import os
+import sys
+
+sys.path.insert(0, os.path.dirname(os.path.realpath(__file__)))
+# The declared seam path: the sha-pinned surface contract (R07) — the
+# import IS the pin check; a drifted pin refuses here, before any byte.
+sys.path.insert(0, "/home/deploy/the-cell/rounds/"
+                   "R07-integration/authored")
+import surface_contract as sc  # noqa: E402  (the seam — declared importer)
+
+from _cell_api import (  # noqa: E402  (the reduced read surface)
+    CellApiError,
+    context,
+    pane_get,
+    pane_list,
+    state_dir,
+    workspace_list,
+)
+
+# The ledger module is the seam's own pinned object — never a direct
+# unpinned import (C4 finding iii, re-pointed).
+fractal_ledger = sc.ledger
+
+# Amihai's word (2026-08-27): a gate letter IS the phase's own validated output.
+# S is the podium/plant (gate x, address ""), the four desks follow the codex.
+POSITION_GATE = {"S": "x", "G": "y", "Q": "z", "P": "a", "V": "b"}
+POSITION_ADDRESS = {"S": "", "G": "G", "Q": "Q", "P": "P", "V": "V"}
+DESKS = ("G", "Q", "P", "V")
+POSITIONS = ("S", "G", "Q", "P", "V")
+CELL_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.realpath(__file__))))
+NODE_DIR = os.path.join(CELL_ROOT, "nodes", "_")  # the live cell is ε of this reading
+QUESTION = os.path.join(NODE_DIR, "question.md")
+BLOCK_VERSION = "g-essence@3"
+
+
+def load_node_word() -> tuple[str, str]:
+    """(word, mirror label) from the node declaration. Refuse if undeclared — no fallback."""
+    path = os.path.join(NODE_DIR, "cell.node.json")
+    try:
+        with open(path, encoding="utf-8") as handle:
+            data = json.load(handle)
+        word = data["word"]
+        reading = data.get("reading") or ""
+    except (OSError, json.JSONDecodeError, KeyError, TypeError) as exc:
+        print(f"REFUSED: cannot read a declared word from {path}: {exc}", file=sys.stderr)
+        print("No default node, no fallback (ADDRESS.md §4).", file=sys.stderr)
+        raise SystemExit(8)
+    return (word, word or reading)
+
+
+def require_human() -> None:
+    if not sys.stdin.isatty() or not sys.stdout.isatty():
+        print("REFUSED: cell-attest needs a human at a keyboard.", file=sys.stderr)
+        print("stdin/stdout is not a TTY, so this invocation is a machine's.", file=sys.stderr)
+        print("The attestation is Amihai's to type, in the pane, with his hands.", file=sys.stderr)
+        raise SystemExit(4)
+
+
+def cell_workspace_id(mirror_label: str) -> str | None:
+    """The cell's workspace is found by the node's MIRROR label — never
+    a hardcoded constant.  Read through the reduced surface."""
+    for workspace in workspace_list():
+        if workspace.get("label") == mirror_label:
+            return workspace.get("workspace_id")
+    return None
+
+
+def resolve_position(argv: list[str], mirror_label: str) -> tuple[dict, str]:
+    """The position (pane, position-letter) named on the command line,
+    else from the context.
+
+    `S` is the podium/plant (the centre), not a desk: its pane is the
+    one that is not G/Q/P/V.  The four desk letters resolve by pane
+    label.  No argument = the pane this invocation came from.
+    """
+    if len(argv) > 1:
+        wanted = argv[1].strip().upper()
+        if wanted not in POSITIONS:
+            print(f"'{argv[1]}' is not a position. Use S, or one of {DESKS}, or no argument in the pane.", file=sys.stderr)
+            raise SystemExit(2)
+        cell_id = cell_workspace_id(mirror_label)
+        if cell_id is None:
+            print(f"No workspace labelled '{mirror_label}' is standing — nothing to attest.", file=sys.stderr)
+            raise SystemExit(2)
+        panes = pane_list(cell_id)
+        if wanted == "S":
+            # the podium is the pane that is NOT one of the four desks — structural, not nominal
+            for pane in panes:
+                if (pane.get("label") or "").strip() not in DESKS:
+                    return pane, "S"
+            print("No podium pane found in the cell — cannot attest the plant.", file=sys.stderr)
+            raise SystemExit(2)
+        for pane in panes:
+            if (pane.get("label") or "").strip() == wanted:
+                return pane, wanted
+        print(f"No pane labelled '{wanted}' in the cell ({cell_id}).", file=sys.stderr)
+        raise SystemExit(2)
+
+    ctx = context()
+    pane_id = (
+        ctx.get("focused_pane_id")
+        or ctx.get("target_pane_id")
+        or os.environ.get("HERDR_PANE_ID")
+        or os.environ.get("HERDR_ACTIVE_PANE_ID")
+    )
+    if not pane_id:
+        print("Cannot tell which position stands at the gate: no pane in the invocation context.", file=sys.stderr)
+        print("Name it instead:  cell-attest S   (plant)  or  cell-attest G|Q|P|V", file=sys.stderr)
+        raise SystemExit(2)
+    pane = pane_get(pane_id)
+    label = (pane.get("label") or "").strip()
+    position = label if label in DESKS else "S"
+    return pane, position
+
+
+def question_fingerprint() -> tuple[str, int, str]:
+    try:
+        with open(QUESTION, "rb") as handle:
+            raw = handle.read()
+    except OSError:
+        return ("", 0, "(no question.md — the podium is empty)")
+    first = ""
+    for line in raw.decode("utf-8", "replace").splitlines():
+        if line.strip():
+            first = line.strip()
+            break
+    return (hashlib.sha256(raw).hexdigest(), len(raw), first or "(question.md is blank)")
+
+
+def main(argv: list[str]) -> int:
+    require_human()
+
+    word, mirror_label = load_node_word()
+    pane, position = resolve_position(argv, mirror_label)
+    pane_id = pane.get("pane_id", "")
+    workspace_id = pane.get("workspace_id", "")
+
+    cell_id = cell_workspace_id(mirror_label)
+    if cell_id is None or workspace_id != cell_id:
+        print(
+            f"REFUSED: pane {pane_id} is in workspace {workspace_id}, which is not the cell"
+            f" ({cell_id or 'no workspace labelled ' + mirror_label}).",
+            file=sys.stderr,
+        )
+        return 7
+
+    gate = POSITION_GATE[position]
+    address = POSITION_ADDRESS[position]
+
+    digest, size, headline = question_fingerprint()
+    print(f"  question : {headline}")
+    print(f"  sha256   : {digest[:16] or '(none)'}  ({size} bytes)")
+    print(f"  position : {position}  →  gate {gate}   address {address or 'ε (root)'}   pane {pane_id}")
+    print(f"  status   : {pane.get('agent_status', 'unknown')}")
+    print("")
+    print("Attesting means: what stands at this position is what you meant. Your word, one line.")
+    print("Empty line aborts and records nothing.")
+    try:
+        note = input(f"attest {position} > ").strip()
+    except (EOFError, KeyboardInterrupt):
+        print("\naborted — nothing recorded.", file=sys.stderr)
+        return 5
+    if not note:
+        print("aborted — nothing recorded.", file=sys.stderr)
+        return 5
+
+    # A fresh anchor only for the plant (S); a desk attestation inherits the axis
+    # (mode inherited, anchor = the plant's record_id, read from the chain tail).
+    if position == "S":
+        axis = {"field": {"mode": "anchored", "anchor": digest or "anchor-0"}, "delta": []}
+        axis_verdict = None
+    else:
+        tail_id = fractal_ledger.tail_record_id(os.path.join(state_dir(), "gates.jsonl"))
+        axis = {"field": {"mode": "inherited", "anchor": tail_id}, "delta": []}
+        axis_verdict = "STASIS"
+
+    record = fractal_ledger.make_record(
+        address=address,
+        gate=gate,
+        state="attested",
+        mark="emergent",
+        payload_ref=digest,
+        axis=axis,
+        axis_verdict=axis_verdict,
+        corruption=None,
+        tentative=False,
+        block_version=BLOCK_VERSION,
+        attestation_ref=note,
+    )
+    writer = fractal_ledger.LedgerWriter(os.path.join(state_dir(), "gates.jsonl"))
+    try:
+        written = writer.append(record)
+    finally:
+        writer.close()
+
+    print(f"\nrecorded → {os.path.join(state_dir(), 'gates.jsonl')}")
+    print(json.dumps(written, indent=1, sort_keys=True))
+    return 0
+
+
+if __name__ == "__main__":
+    try:
+        sys.exit(main(sys.argv))
+    except CellApiError as exc:
+        print(f"STOP: {exc} — nothing recorded.", file=sys.stderr)
+        sys.exit(6)
+    except ImportError as exc:
+        print(f"STOP: the seam contract refused its pin check ({exc}) — "
+              f"the attestation is INCONCLUSIVE, nothing recorded.", file=sys.stderr)
+        sys.exit(6)

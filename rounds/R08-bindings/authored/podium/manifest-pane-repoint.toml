@@ -1,0 +1,19 @@
+# ── R08 bindings · the podium re-point (content only — H-R08-6) ────────────
+# Replace the [[panes]] block of plugin/herdr-plugin-v4.toml with this one.
+# The ONLY change from v4: the pane's content command is re-pointed from
+# `cat ./question.md` to `cell-podium` — the read-only renderer over
+# state/trail.jsonl (one cellctl trail call per refresh; the trail's own
+# classification, printed never re-derived).  The seal property is unchanged:
+# one foreground `watch`, argv-only, no shell.  The look-and-feel skin
+# (theme/sidebar/toasts) is a separate later round — this block only
+# re-points the CONTENT.
+#
+# The ledger/trail paths are manifest data (one place to change — K5); the
+# renderer resolves the seam binary from CELLCTL_BIN or its declared default.
+
+[[panes]]
+id          = "podium"
+title       = "THE TRAIL"
+command     = ["watch", "-n", "2", "/home/deploy/the-cell/plugin/bin/cell-podium", "--ledger", "/home/deploy/the-cell/state/gates.jsonl", "--trail", "/home/deploy/the-cell/state/trail.jsonl"]
+placement   = "split"
+description = "SEALED. The live formation trail — written by the engine's /conduct, read here only, one event per line. Absent trail reads INCONCLUSIVE, never a stand-in. No shell lives here."

@@ -1,0 +1,48 @@
+{
+  "name": "R02-B1 C4 restart transcript — w2:* ids, a mid-run connection close, then re-minted w8:* ids with the same labels",
+  "note": "mirrors the real observed shift (w2:* on disk, w8:* live, §3.2). arrangement a carries a stray workspace w9 pane labelled Q: the workspace must be derived from the labels resolved, never assumed.",
+  "arrangements": {
+    "a": {
+      "panes": [
+        {"pane_id": "w7:p1", "workspace_id": "w7", "tab_id": "t7", "terminal_id": "term_1", "agent_status": "unknown", "focused": false, "revision": 1, "label": null},
+        {"pane_id": "w2:p2", "workspace_id": "w2", "tab_id": "t2", "terminal_id": "term_2", "agent_status": "unknown", "focused": true, "revision": 0, "label": "podium"},
+        {"pane_id": "w2:p3", "workspace_id": "w2", "tab_id": "t2", "terminal_id": "term_3", "agent_status": "idle", "focused": false, "revision": 2, "label": "G", "agent": "pi", "title": "π - the-cell"},
+        {"pane_id": "w2:p4", "workspace_id": "w2", "tab_id": "t2", "terminal_id": "term_4", "agent_status": "unknown", "focused": false, "revision": 1, "label": "V"},
+        {"pane_id": "w2:p5", "workspace_id": "w2", "tab_id": "t2", "terminal_id": "term_5", "agent_status": "unknown", "focused": false, "revision": 1, "label": "Q"},
+        {"pane_id": "w2:p6", "workspace_id": "w2", "tab_id": "t2", "terminal_id": "term_6", "agent_status": "unknown", "focused": false, "revision": 1, "label": "P"},
+        {"pane_id": "w9:p9", "workspace_id": "w9", "tab_id": "t9", "terminal_id": "term_9", "agent_status": "unknown", "focused": false, "revision": 1, "label": "Q"}
+      ],
+      "reads": {
+        "w2:p2": "",
+        "w2:p3": "π - the-cell\n",
+        "w2:p4": "~\n",
+        "w2:p5": "~\n",
+        "w2:p6": "~\n"
+      }
+    },
+    "b": {
+      "panes": [
+        {"pane_id": "w7:p1", "workspace_id": "w7", "tab_id": "t7", "terminal_id": "term_1", "agent_status": "unknown", "focused": false, "revision": 1, "label": null},
+        {"pane_id": "w8:p2", "workspace_id": "w8", "tab_id": "t8", "terminal_id": "term_2", "agent_status": "unknown", "focused": true, "revision": 0, "label": "podium"},
+        {"pane_id": "w8:p3", "workspace_id": "w8", "tab_id": "t8", "terminal_id": "term_3", "agent_status": "idle", "focused": false, "revision": 2, "label": "G", "agent": "pi", "title": "π - the-cell"},
+        {"pane_id": "w8:p4", "workspace_id": "w8", "tab_id": "t8", "terminal_id": "term_4", "agent_status": "unknown", "focused": false, "revision": 1, "label": "V"},
+        {"pane_id": "w8:p5", "workspace_id": "w8", "tab_id": "t8", "terminal_id": "term_5", "agent_status": "unknown", "focused": false, "revision": 1, "label": "Q"},
+        {"pane_id": "w8:p6", "workspace_id": "w8", "tab_id": "t8", "terminal_id": "term_6", "agent_status": "unknown", "focused": false, "revision": 1, "label": "P"}
+      ],
+      "reads": {
+        "w8:p2": "",
+        "w8:p3": "π - the-cell\n",
+        "w8:p4": "~\n",
+        "w8:p5": "~\n",
+        "w8:p6": "~\n"
+      }
+    }
+  },
+  "script": [
+    {"expect": "pane.list", "result_from": {"arr": "a"}},
+    {"expect": "pane.get", "close": true},
+    {"expect": "pane.get", "error": {"code": "pane_not_found", "message": "pane w2:p3 not found"}},
+    {"expect": "pane.list", "result_from": {"arr": "b"}}
+  ],
+  "default": "b"
+}

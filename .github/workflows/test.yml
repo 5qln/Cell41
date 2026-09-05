@@ -1,0 +1,28 @@
+name: test
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.12"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Compile Python
+        run: python -m compileall -q .
+      - name: Correspondence lock (all five desks)
+        run: |
+          for d in S G Q P V; do
+            python3 skills/5qln-lock/lock.py "$d" \
+              --system "desks/$d/SYSTEM.md" --agents "desks/$d/AGENTS.md"
+          done

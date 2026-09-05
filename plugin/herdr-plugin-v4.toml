@@ -1,0 +1,295 @@
+# herdr-plugin.toml — THE CELL as an instrument · v2 (identity key corrected)
+# plugin id: cell.fiveqln · authored 2026-08-24 by hermes-amihai [A]
+# plugin_root (server-derived) = the parent of this file = /home/deploy/the-cell/plugin
+#
+# v1 WAS NEVER LINKED. It was rejected by the live server at 2026-08-24 with:
+#   plugin_manifest_parse_failed → "TOML parse error at line 1, column 1 … missing field `id`"
+# v3 (18:40) — OPEN-5 is answered, so the withheld block returns with a VERIFIED name.
+# Changes from the rejected v1, in total:
+#   1. `plugin_id` → `id`                      (the parser said so — Source 0 below)
+#   2. `[[events]] on` = "pane.agent_status_changed", DOTTED — not the underscored
+#      EventKind spelling. v2 withheld this block rather than guess; three independent
+#      sources now agree (Source D's example is dotted; the binary carries TWO enums —
+#      a 27-variant dotted list and a 26-variant underscored one; and my own schema copy
+#      has the dotted list under request/$defs/Subscription while the underscored one is
+#      the push EventKind). The manifest hook lives in the dotted namespace.
+# Nothing else moved. The podium, the four actions and every guard are byte-for-byte v1.
+#
+# GROUNDING — in order of authority, which is the order I should have used the first time:
+#   Source 0 (DECISIVE, live): the server's own parse error on `herdr plugin link`, quoted
+#     above, reported in inbox/SWAP-REPORT-2026-08-24.md. The parser is the authority.
+#   Source D (DOCUMENTED EXAMPLE, and I already had it): /opt/data/cache/herdr-dossier.md
+#     lines 1085-1135 — "Manifest schema (complete, from docs)", a full worked
+#     herdr-plugin.toml, plus the prose: "Top-level required: id, name, version,
+#     min_herdr_version. Optional: description, platforms." It says `id`. It always said
+#     `id`. I had this file in my own cache, cited it as a secondary source for the ARRAY
+#     names, and then let a strings-inference from the binary overrule it on the identity
+#     key. SECOND RULE ADDED, harder than the first: a documented worked example outranks
+#     any inference, including my own from the API schema or the binary. If they disagree,
+#     the example is the fact and the inference is the hypothesis.
+#   Source A (live): inbox/herdr-api.schema.json — protocol 20, herdr 0.8.2.
+#     $defs: InstalledPluginInfo, PluginManifestPane, PluginManifestAction,
+#     PluginManifestEventHook, PluginPanePlacement, PopupSize, PluginPlatform,
+#     PluginActionContext, EventKind.
+#   Source B (host binary): inbox/DISCOVERY-PLUGIN-GRAMMAR-REPORT-2026-08-24.md
+#     — `struct RawPluginManifest with 12 elements` + the validation-error cluster.
+#
+# THE MISTAKE V1 MADE, WRITTEN DOWN SO IT IS NOT REPEATED:
+#   `RawPluginManifest` (what the TOML is parsed INTO) and `InstalledPluginInfo` (what the
+#   API hands BACK) share a flat 12-field shape but do NOT share the identity key's name:
+#     TOML in  →  id
+#     API out  →  plugin_id
+#   I read the output struct's field list and wrote it into the input file. A schema of the
+#   API's view is not a schema of the file. The 12-count still holds either way — which is
+#   exactly why it did not catch the error: id · name · version · min_herdr_version ·
+#   description · platforms · build · startup · actions · events · panes · link_handlers.
+#   RULE ADDED: when a tool has both an input parse model and an output info struct, only
+#   the parse model's own error messages settle a field name. Everything else is a guess
+#   wearing evidence's clothes.
+#
+# OPEN-5 (event-hook name grammar) — WAS the reason this block was withheld in v2, now CLOSED:
+#   two namespaces exist and they are not interchangeable:
+#     manifest hooks + socket subscriptions → DOTTED   `pane.agent_status_changed`
+#     the push event stream (EventKind)     → UNDERSCORED `pane_agent_status_changed`
+#   Evidence, in the ranking order this file now obeys:
+#     1. docs example (Source D, line 1112): `on = "worktree.created"` — dotted.
+#     2. the 0.8.2 binary carries BOTH lists: `variant index 0 <= i < 27` beside the dotted
+#        names, `0 <= i < 26` beside the underscored ones (sibling probe,
+#        inbox/EVENT-GRAMMAR-PROBE-2026-08-24.md + inbox/event-grammar-raw.txt).
+#     3. verified by me, in my own schema copy, not taken on report: 27 dotted consts under
+#        request/$defs/Subscription — including `pane.agent_status_changed` — against 26
+#        underscored values in event/$defs/EventKind.
+#   AND A TRAP THE SIBLING CAUGHT IN MY OWN SOURCE: the dossier's *second* [[events]] example
+#   (line 1271) says `on = "pane.process_changed"`. That literal exists nowhere in the 0.8.2
+#   binary — stale or paraphrased. So the ranking rule gains a line: a documented example must
+#   still name a value the INSTALLED version carries. Version-check every literal; two
+#   documented examples can disagree, and then only the binary/parser breaks the tie.
+#   Residual risk, named and accepted: if this name is somehow wrong, `plugin.list` returns a
+#   NON-FATAL warning that quotes the offending value (`unknown event '…'`). The re-link
+#   instruction therefore carries one narrow branch: a warning that quotes an event name does
+#   NOT stop the swap — the podium does not depend on the cell's ears — while any other
+#   warning still stops everything.
+#
+# THE OTHER THREE OPENS OF THE DRAFT REMAIN CLOSED (unaffected by the above):
+#   OPEN-2 (entrypoint) → the pane's own `id`. PluginPaneOpenParams requires
+#     {plugin_id, entrypoint}; PluginPaneInfo returns {plugin_id, entrypoint, pane};
+#     the pane command is handed HERDR_PLUGIN_ENTRYPOINT_ID. So entrypoint = "podium".
+#     The swap instruction still READS the id back from plugin.list before opening —
+#     the server's parse, not my assumption, supplies the value.
+#   OPEN-3 (invocation context) → environment variables. HERDR_PLUGIN_CONTEXT_JSON
+#     (a PluginInvocationContext object), plus HERDR_PLUGIN_ENTRYPOINT_ID,
+#     HERDR_PLUGIN_ACTION_ID, HERDR_PLUGIN_EVENT/_JSON, HERDR_WORKSPACE_ID,
+#     HERDR_TAB_ID, HERDR_PANE_ID, HERDR_PLUGIN_ROOT/_CONFIG_DIR/_STATE_DIR,
+#     HERDR_SOCKET_PATH. bin/* read these; nothing depends on argv or cwd.
+#   OPEN-4 (calling an API method from a script) → there is NO `herdr api call`.
+#     Arbitrary methods go over the unix socket as {"id","method","params"}.
+#     bin/_cell_api.py is my own 60-line stdlib client — the cell does not depend on
+#     any file authored by the sibling.
+#
+# ONE CATCH CAUGHT BEFORE LINKING (why the draft would have failed validation):
+#   the draft podium pane carried width = "30%" together with placement = "split".
+#   The binary's validator says verbatim: "pane width and height are only supported
+#   when placement is popup" → the draft would have died on invalid_plugin_pane_size.
+#   width/height are GONE from this file. The podium's 30% comes from geometry instead:
+#   the plugin pane is born inside the interim podium's own column and inherits that
+#   area when the interim one closes. No layout.set_split_ratio is needed — and that
+#   verb was not attested.
+#
+# LAW ENCODED HERE:
+#   podium = plugin-owned, no shell                    (sealed center)
+#   plant / attest = fail closed without a human TTY   (DC-02, by construction)
+#   begin / zoom  = freely machine-invokable           (free corners)
+#   no startup, no build, no link_handlers             (nothing autonomous)
+#   nothing in this manifest names workspace w1        (Amihai's session, untouched)
+
+# ─────────────────────────────────────────────────────────────────────────────
+# v4 (2026-08-24, §B of AGREED-PLAN-ADDRESSING-v2) — NODE-LOCAL CENTRE (R4).
+# The ONLY change from v3: the podium command's centre path is now RELATIVE
+# ("./question.md"). The node is selected by the cwd passed to plugin.pane.open
+# (proven 2026-08-24: --cwd honoured outside plugin_root, PROBE-RESULT-S7). One
+# manifest now serves every node at every depth; the seal argv (watch, no shell)
+# is byte-identical — the seal proof carries over unchanged.
+# PLACEMENT ONLY: this file is NOT to be linked in §B. The live podium keeps its
+# current absolute argv until §D's attested window (sibling catch #1, accepted).
+# ─────────────────────────────────────────────────────────────────────────────
+
+# ── identity (flat, and the identity key is `id` — settled by the parser itself) ──────
+# `id` is what the TOML parse model requires; the API reports the same value back as
+# `plugin_id` in InstalledPluginInfo. Do not add a second `plugin_id` key here: the parser
+# ignores keys it does not know, so it would sit in the file looking authoritative and
+# meaning nothing. One name in, one name out, and this comment is the bridge between them.
+id                = "cell.fiveqln"
+name              = "The Cell — 4+1"
+version           = "1.0.0"
+description       = "The 4+1 cell as a Herdr instrument: a sealed podium holding the human's question, four free desks G·Q·P·V, and the actions that raise, plant, attest and descend."
+min_herdr_version = "0.8.2"   # must be <= 0.8.2 (binary carries the literal threshold)
+platforms         = ["linux"] # PluginPlatform enum: linux | macos | windows
+
+# ── the podium: the sealed center ───────────────────────────────────────────
+# PluginManifestPane: id* · title* · command* · description · placement · width · height · platforms
+# v4: the argv keeps the attested PROPERTY — one foreground `watch`, no shell — while the path is
+# now RELATIVE (./question.md). The absolute path that was verified on the live interim podium via
+# pane.process_info moved into the pane's cwd (R4); the seal proof is unchanged because the
+# process and its shape are unchanged. It renders the node's own question.md ONLY.
+# NO width/height: they are popup-only (see "ONE CATCH" above).
+[[panes]]
+id          = "podium"
+title       = "THE TRAIL"
+command     = ["watch", "-n", "2", "/home/deploy/the-cell/plugin/bin/cell-podium", "--ledger", "/home/deploy/the-cell/state/gates.jsonl", "--trail", "/home/deploy/the-cell/state/trail.jsonl"]
+placement   = "split"
+description = "SEALED. The live formation trail — written by the engine's /conduct, read here only, one event per line. Absent trail reads INCONCLUSIVE, never a stand-in. No shell lives here."
+
+# ── the actions: the score's four gestures ──────────────────────────────────
+# PluginManifestAction: id* · title* · command* · description · contexts · platforms
+# PluginActionContext enum (verified): global | workspace | tab | pane | selection
+# Every command is an absolute path inside plugin_root/bin — nothing depends on cwd.
+
+# begin — raise the cell. Machine-invokable (a free corner gesture).
+# Resolves the workspace by LABEL "the-cell"; REFUSES to re-apply a layout over a
+# cell that is already standing (layout.apply replaces the tab and would kill the
+# plugin podium). Never passes focus:true. Never names w1. Boots no agents.
+[[actions]]
+id          = "begin"
+title       = "Begin — raise the cell"
+command     = ["/home/deploy/the-cell/plugin/bin/cell-begin"]
+contexts    = ["global"]
+description = "Raise the 4+1 cell in its own workspace: podium + desks G·Q·P·V. Boots no agents. Refuses to overwrite a standing cell."
+
+# plant — the ONLY write path to question.md, and it is a human's hands.
+# FAILS CLOSED: stdin not a TTY ⇒ refuse, exit 4. plugin.action.invoke over the
+# socket therefore cannot plant a question — it can only ask a human to.
+[[actions]]
+id          = "plant"
+title       = "Plant the question (human only)"
+command     = ["/home/deploy/the-cell/plugin/bin/cell-plant"]
+contexts    = ["global"]
+description = "Open question.md for the human to write the live question. Refuses without a human at a keyboard."
+
+# attest — records the human's confirmation of the desk standing at the gate,
+# in state/gates.jsonl — never in question.md. Same TTY guard: an attestation
+# typed by a machine is not an attestation.
+[[actions]]
+id          = "attest"
+title       = "Attest the current gate"
+command     = ["/home/deploy/the-cell/plugin/bin/cell-attest"]
+contexts    = ["global", "pane"]
+description = "Record the human's attestation of the desk now standing at the gate. Human TTY required."
+
+# zoom — the holographic descent (XY := X within Y): a desk opens as its own cell.
+# v1 reports the descent target and mutates nothing; free to be machine-invoked.
+[[actions]]
+id          = "zoom"
+title       = "Zoom into a desk"
+command     = ["/home/deploy/the-cell/plugin/bin/cell-zoom"]
+contexts    = ["pane"]
+description = "Descend into the focused desk as its own cell (holographic law). v1: reports the descent target, mutates nothing."
+
+# ── deliberately absent ─────────────────────────────────────────────────────
+# [[startup]]       — nothing in this cell may start unbidden.
+# [[build]]         — the cell is declarative; there is nothing to compile.
+# [[link_handlers]] — no URL surface at v1.
+#
+# ── the events: the conductor's ears (restored in v3 with a verified name) ───
+# RawPluginManifestEventHook = 3 fields: on* · command* · platforms (optional).
+# DOTTED namespace — see OPEN-5 in the header. `pane_agent_status_changed` (underscored) is the
+# push-stream spelling and would be an unknown name here.
+# The hook is a pure recorder: it writes state/desk-state.jsonl for the four desks of THIS
+# workspace only, drops every other event unread — Amihai's w1 and his pi above all — never
+# mutates anything, never touches question.md, and always exits 0. A hook is not a gate.
+[[events]]
+on      = "pane.agent_status_changed"
+command = ["/home/deploy/the-cell/plugin/bin/cell-on-desk-state"]
+
+# ── R08 bindings · the human's conduction actions (addendum, not a rewrite) ──
+# Append these blocks to plugin/herdr-plugin-v4.toml (the v4 manifest stays
+# byte-identical otherwise; `plant` / `attest` are unchanged — they are not
+# re-declared here).  Each action's command is the seam itself — one
+# `cellctl` subcommand per action, argv-only, never through a shell, no TTY
+# guard (free gestures, like `begin`/`zoom`).  C1: one action = one cellctl
+# call; the action adds nothing on top (C3).  C2: no write verb is exposed —
+# `/states` is the only desk-facing read.  C8: each action is an independent
+# stud; no action chains another, and the orchestration method stays the
+# brick data the engine reads (word.json + spec.json + soft.json).
+#
+# DATA CONSTANTS (the paths below are manifest data, one place to change —
+# K5; none of them are code):
+#   CELLCTL  = /home/deploy/the-cell/rounds/R07-integration/authored/cellctl   (the seam, R07 canon 992b775)
+#   CELL_SPEC    = /home/deploy/the-cell/rounds/R07-integration/authored/spec.json
+#   CELL_WORD    = /home/deploy/the-cell/state/word.json                        (D2 open — the acceptance word is
+#                                                                               Amihai's to plant; absent today, so
+#                                                                               /word reads absent, honestly)
+#   CELL_DECODED = /home/deploy/the-cell/state/decoded-scenario.json            (the declared handoff for the decoded
+#                                                                               scenario — written by no binding; see
+#                                                                               README — the engine reads it, or it is
+#                                                                               absent, honestly)
+#   CELL_LEDGER  = /home/deploy/the-cell/state/gates.jsonl
+#   CELL_TRAIL   = /home/deploy/the-cell/state/trail.jsonl
+#   MATERIALIZE_OUT = /home/deploy/the-cell/state/materialized
+#
+# Failure discipline (C6): when a data path is absent — word.json while D2 is
+# open, the trail before the first run — the action forwards cellctl's honest
+# absent/inconclusive report verbatim.  Never a substituted value, never a
+# clean verdict, never a fixture stand-in.
+
+# conduct — the composite run over the live desks (the load-bearing action).
+[[actions]]
+id          = "conduct"
+title       = "Conduct — run the cell"
+command     = ["/home/deploy/the-cell/rounds/R07-integration/authored/cellctl", "conduct", "--spec", "/home/deploy/the-cell/rounds/R07-integration/authored/spec.json"]
+contexts    = ["global", "pane"]
+description = "Run the conducted cycle over the live desks through the seam. The run lock is the seam's (C5); an open D2 reads INCONCLUSIVE, never a stand-in."
+
+# word — decode the acceptance word (D2 open: absent reads absent).
+[[actions]]
+id          = "word"
+title       = "Word — decode the scenario"
+command     = ["/home/deploy/the-cell/rounds/R07-integration/authored/cellctl", "word", "--scenario", "/home/deploy/the-cell/state/word.json"]
+contexts    = ["global"]
+description = "Decode the acceptance word through the seam. Absent word.json reads absent honestly (D2 open — the word is Amihai's to plant)."
+
+# plan — derive the sign-walk of the decoded scenario (the declared handoff
+# file; absent reads absent).
+[[actions]]
+id          = "plan"
+title       = "Plan — derive the sign-walk"
+command     = ["/home/deploy/the-cell/rounds/R07-integration/authored/cellctl", "plan", "/home/deploy/the-cell/state/decoded-scenario.json"]
+contexts    = ["global"]
+description = "Derive the sign-walk of the decoded scenario through the seam. Pure — no socket, no ledger."
+
+# materialize — emit the decoded word's child cells.
+[[actions]]
+id          = "materialize"
+title       = "Materialize — emit the child cells"
+command     = ["/home/deploy/the-cell/rounds/R07-integration/authored/cellctl", "materialize", "/home/deploy/the-cell/state/decoded-scenario.json", "--out", "/home/deploy/the-cell/state/materialized"]
+contexts    = ["global"]
+description = "Emit each node's child cell through the seam (the engine's own materializer; the write path is the engine's, not the action's)."
+
+# states — the desks' real states, read-only (the only desk-facing surface).
+[[actions]]
+id          = "states"
+title       = "States — read the desks"
+command     = ["/home/deploy/the-cell/rounds/R07-integration/authored/cellctl", "states", "--spec", "/home/deploy/the-cell/rounds/R07-integration/authored/spec.json"]
+contexts    = ["global", "pane"]
+description = "Read each desk's real state through the seam. Read-only; an absent socket reads {\"status\":\"absent\"} honestly."
+
+# trail — the human's window into the formation trail.
+[[actions]]
+id          = "trail"
+title       = "Trail — read the formation trail"
+command     = ["/home/deploy/the-cell/rounds/R07-integration/authored/cellctl", "trail", "--ledger", "/home/deploy/the-cell/state/gates.jsonl", "--trail", "/home/deploy/the-cell/state/trail.jsonl"]
+contexts    = ["global", "pane"]
+description = "Read the readable trail and the dependency audit through the seam. Absent/empty/damaged reads its honest status."
+
+# descent — REMOVED at deployment (2026-08-31): the fixed gesture `path-between
+# --from "" --to V` needs an EMPTY address (the centre), which herdr's manifest
+# validator refuses ("command must contain non-empty argv strings"). The descent
+# capability is preserved in the conductor's pi-cell `descent` slash tool, which
+# passes the empty centre at runtime through the pi tool param (not the manifest).
+
+# config — read the soft config (read-only; absent = the declared defaults).
+[[actions]]
+id          = "config"
+title       = "Config — read the soft config"
+command     = ["/home/deploy/the-cell/rounds/R07-integration/authored/cellctl", "config"]
+contexts    = ["global"]
+description = "Read the soft config through the seam. Absent file reads the engine's declared defaults, honestly."

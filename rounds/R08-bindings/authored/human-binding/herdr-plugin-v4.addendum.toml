@@ -1,0 +1,96 @@
+# ── R08 bindings · the human's conduction actions (addendum, not a rewrite) ──
+# Append these blocks to plugin/herdr-plugin-v4.toml (the v4 manifest stays
+# byte-identical otherwise; `plant` / `attest` are unchanged — they are not
+# re-declared here).  Each action's command is the seam itself — one
+# `cellctl` subcommand per action, argv-only, never through a shell, no TTY
+# guard (free gestures, like `begin`/`zoom`).  C1: one action = one cellctl
+# call; the action adds nothing on top (C3).  C2: no write verb is exposed —
+# `/states` is the only desk-facing read.  C8: each action is an independent
+# stud; no action chains another, and the orchestration method stays the
+# brick data the engine reads (word.json + spec.json + soft.json).
+#
+# DATA CONSTANTS (the paths below are manifest data, one place to change —
+# K5; none of them are code):
+#   CELLCTL  = /home/deploy/the-cell/rounds/R07-integration/authored/cellctl   (the seam, R07 canon 992b775)
+#   CELL_SPEC    = /home/deploy/the-cell/rounds/R07-integration/authored/spec.json
+#   CELL_WORD    = /home/deploy/the-cell/state/word.json                        (D2 open — the acceptance word is
+#                                                                               Amihai's to plant; absent today, so
+#                                                                               /word reads absent, honestly)
+#   CELL_DECODED = /home/deploy/the-cell/state/decoded-scenario.json            (the declared handoff for the decoded
+#                                                                               scenario — written by no binding; see
+#                                                                               README — the engine reads it, or it is
+#                                                                               absent, honestly)
+#   CELL_LEDGER  = /home/deploy/the-cell/state/gates.jsonl
+#   CELL_TRAIL   = /home/deploy/the-cell/state/trail.jsonl
+#   MATERIALIZE_OUT = /home/deploy/the-cell/state/materialized
+#
+# Failure discipline (C6): when a data path is absent — word.json while D2 is
+# open, the trail before the first run — the action forwards cellctl's honest
+# absent/inconclusive report verbatim.  Never a substituted value, never a
+# clean verdict, never a fixture stand-in.
+
+# conduct — the composite run over the live desks (the load-bearing action).
+[[actions]]
+id          = "conduct"
+title       = "Conduct — run the cell"
+command     = ["/home/deploy/the-cell/rounds/R07-integration/authored/cellctl", "conduct", "--spec", "/home/deploy/the-cell/rounds/R07-integration/authored/spec.json"]
+contexts    = ["global", "pane"]
+description = "Run the conducted cycle over the live desks through the seam. The run lock is the seam's (C5); an open D2 reads INCONCLUSIVE, never a stand-in."
+
+# word — decode the acceptance word (D2 open: absent reads absent).
+[[actions]]
+id          = "word"
+title       = "Word — decode the scenario"
+command     = ["/home/deploy/the-cell/rounds/R07-integration/authored/cellctl", "word", "--scenario", "/home/deploy/the-cell/state/word.json"]
+contexts    = ["global"]
+description = "Decode the acceptance word through the seam. Absent word.json reads absent honestly (D2 open — the word is Amihai's to plant)."
+
+# plan — derive the sign-walk of the decoded scenario (the declared handoff
+# file; absent reads absent).
+[[actions]]
+id          = "plan"
+title       = "Plan — derive the sign-walk"
+command     = ["/home/deploy/the-cell/rounds/R07-integration/authored/cellctl", "plan", "/home/deploy/the-cell/state/decoded-scenario.json"]
+contexts    = ["global"]
+description = "Derive the sign-walk of the decoded scenario through the seam. Pure — no socket, no ledger."
+
+# materialize — emit the decoded word's child cells.
+[[actions]]
+id          = "materialize"
+title       = "Materialize — emit the child cells"
+command     = ["/home/deploy/the-cell/rounds/R07-integration/authored/cellctl", "materialize", "/home/deploy/the-cell/state/decoded-scenario.json", "--out", "/home/deploy/the-cell/state/materialized"]
+contexts    = ["global"]
+description = "Emit each node's child cell through the seam (the engine's own materializer; the write path is the engine's, not the action's)."
+
+# states — the desks' real states, read-only (the only desk-facing surface).
+[[actions]]
+id          = "states"
+title       = "States — read the desks"
+command     = ["/home/deploy/the-cell/rounds/R07-integration/authored/cellctl", "states", "--spec", "/home/deploy/the-cell/rounds/R07-integration/authored/spec.json"]
+contexts    = ["global", "pane"]
+description = "Read each desk's real state through the seam. Read-only; an absent socket reads {\"status\":\"absent\"} honestly."
+
+# trail — the human's window into the formation trail.
+[[actions]]
+id          = "trail"
+title       = "Trail — read the formation trail"
+command     = ["/home/deploy/the-cell/rounds/R07-integration/authored/cellctl", "trail", "--ledger", "/home/deploy/the-cell/state/gates.jsonl", "--trail", "/home/deploy/the-cell/state/trail.jsonl"]
+contexts    = ["global", "pane"]
+description = "Read the readable trail and the dependency audit through the seam. Absent/empty/damaged reads its honest status."
+
+# descent — the address grammar, one fixed op (path between the centre and
+# Value — the cycle's spine; the op is manifest data, changeable).
+[[actions]]
+id          = "descent"
+title       = "Descent — path from the centre to Value"
+command     = ["/home/deploy/the-cell/rounds/R07-integration/authored/cellctl", "descent", "path-between", "--from", "", "--to", "V"]
+contexts    = ["global", "pane"]
+description = "The signed path from the centre (ε) to Value through the address grammar — one seam call."
+
+# config — read the soft config (read-only; absent = the declared defaults).
+[[actions]]
+id          = "config"
+title       = "Config — read the soft config"
+command     = ["/home/deploy/the-cell/rounds/R07-integration/authored/cellctl", "config"]
+contexts    = ["global"]
+description = "Read the soft config through the seam. Absent file reads the engine's declared defaults, honestly."

@@ -1,0 +1,42 @@
+#!/bin/sh
+# cell-boot v1 (2026-08-25) — boot a pi agent into a desk, resolving the pane by LABEL.
+# usage: cell-boot [G|Q|P|V]   (default: G)
+# Never trusts pane ids; the workspace and desk are found by label (knobs.md lesson).
+desk="${1:-G}"
+case "$desk" in
+  G|Q|P|V) ;;
+  *) echo "desk must be G, Q, P or V"; exit 2 ;;
+esac
+
+ws=$(herdr workspace list 2>/dev/null | python3 -c "
+import json,sys
+d=json.load(sys.stdin)
+for w in d['result']['workspaces']:
+    if w.get('label')=='the-cell':
+        print(w['workspace_id']); break
+")
+[ -z "$ws" ] && { echo "the-cell workspace not found"; exit 3; }
+
+pane=$(herdr pane list --workspace "$ws" 2>/dev/null | python3 -c "
+import json,sys
+d=json.load(sys.stdin)
+for p in d['result']['panes']:
+    if p.get('label','').upper()=='${desk}'.upper():
+        print(p['pane_id']); break
+")
+[ -z "$pane" ] && { echo "desk $desk not found in $ws"; exit 4; }
+
+agents=$(herdr agent list 2>/dev/null | python3 -c "
+import json,sys
+d=json.load(sys.stdin)
+for a in d['result']['agents']:
+    if a.get('pane_id')=='${pane}':
+        print('yes'); break
+")
+if [ "$agents" = "yes" ]; then
+    echo "desk $desk ($pane) already has an agent running — nothing to boot."
+    exit 0
+fi
+
+echo "booting pi into $pane ($desk)…"
+herdr pane run "$pane" "source ~/.nvm/nvm.sh >/dev/null 2>&1; pi --provider kimi-coding --model kimi-k3"

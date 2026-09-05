@@ -1,0 +1,1210 @@
+{
+ "name": "R03-B2 full cycle y→z→a→b with interleaved human attestations and one recorded refusal",
+ "note": "commission §2.1: gate x is the plant, already attested; the driver walks y z a b, never the centre.  The refusal between the y proposal and the y attestation is C2's evidence: the advance was refused AND the refusal was recorded before the next prompt.  The boot asserts §7 trust for G/Q/P/V, so the fixture carries a synthetic constituted pi_home (settings.json with a \"skills\" key — a declared claim, H-B2-4) and a synthetic arrangement; the instruction strings are declared placeholders, never a real desk instruction.",
+ "driver_params": {
+  "block_version": "",
+  "wait_timeout_ms": 60000,
+  "fence_source": "visible"
+ },
+ "panes": [
+  {
+   "pane_id": "w8:p2",
+   "workspace_id": "w8",
+   "tab_id": "t8",
+   "terminal_id": "term_2",
+   "agent_status": "unknown",
+   "focused": true,
+   "revision": 0,
+   "label": "podium"
+  },
+  {
+   "pane_id": "w8:p3",
+   "workspace_id": "w8",
+   "tab_id": "t8",
+   "terminal_id": "term_3",
+   "agent_status": "idle",
+   "focused": false,
+   "revision": 2,
+   "label": "G",
+   "agent": "pi",
+   "title": "π - the-cell"
+  },
+  {
+   "pane_id": "w8:p5",
+   "workspace_id": "w8",
+   "tab_id": "t8",
+   "terminal_id": "term_5",
+   "agent_status": "idle",
+   "focused": false,
+   "revision": 1,
+   "label": "Q",
+   "agent": "pi",
+   "title": "deploy@srv1707555: ~/the-cell"
+  },
+  {
+   "pane_id": "w8:p6",
+   "workspace_id": "w8",
+   "tab_id": "t8",
+   "terminal_id": "term_6",
+   "agent_status": "idle",
+   "focused": false,
+   "revision": 1,
+   "label": "P",
+   "agent": "pi",
+   "title": "deploy@srv1707555: ~/the-cell"
+  },
+  {
+   "pane_id": "w8:p4",
+   "workspace_id": "w8",
+   "tab_id": "t8",
+   "terminal_id": "term_4",
+   "agent_status": "idle",
+   "focused": false,
+   "revision": 1,
+   "label": "V",
+   "agent": "pi",
+   "title": "deploy@srv1707555: ~/the-cell"
+  }
+ ],
+ "prompts": {
+  "G": "Desk G, gate y: turn the question. ∞0′ → ‖",
+  "Q": "Desk Q, gate z: ask the question. ∞0′ → ‖",
+  "P": "Desk P, gate a: press the question. ∞0′ → ‖",
+  "V": "Desk V, gate b: view the question. ∞0′ → ‖"
+ },
+ "expected_prompt_keys": {
+  "G": "a49024a39a419dc8f608d442b8574813278bcedc3a4ff36d917f527ef9679a3b",
+  "Q": "a0a4670db1c2f728c71bb9f512dae8fe24e7e4ccb9913716b4a5326695ead635",
+  "P": "a1b979f08b8efa66e94fe1d4af1cff432cff74e10fbc3345ea179409015ba940",
+  "V": "6e9a0a07f78bdb40368438783e25dba55ef6c01726009851b310f18dec745a90"
+ },
+ "expected_refusal_keys": {
+  "G1": "69edb9b8a5f56d607a1c915c150bb8e52c8f19f6c1b15abdb87852055980b354"
+ },
+ "human_attestation_records": {
+  "G": {
+   "address": "G",
+   "gate": "y",
+   "state": "attested",
+   "mark": "emergent",
+   "payload_ref": "attest:y",
+   "axis": {
+    "field": {
+     "mode": "anchored",
+     "anchor": "attest:y"
+    },
+    "delta": []
+   },
+   "axis_verdict": null,
+   "corruption": null,
+   "tentative": false,
+   "turn_key": "4e37acf8b261bb970495354d187bca8f9ff35144300177cad7c23dc0f8364721",
+   "block_version": "",
+   "attestation_ref": "Amihai: gate y holds (fixture TTY stand-in)"
+  },
+  "Q": {
+   "address": "Q",
+   "gate": "z",
+   "state": "attested",
+   "mark": "emergent",
+   "payload_ref": "attest:z",
+   "axis": {
+    "field": {
+     "mode": "anchored",
+     "anchor": "attest:z"
+    },
+    "delta": []
+   },
+   "axis_verdict": null,
+   "corruption": null,
+   "tentative": false,
+   "turn_key": "c5433a2cd974f7cd2f74203f0b6b7f5e56959b058831604370988461e43d88ac",
+   "block_version": "",
+   "attestation_ref": "Amihai: gate z holds (fixture TTY stand-in)"
+  },
+  "P": {
+   "address": "P",
+   "gate": "a",
+   "state": "attested",
+   "mark": "emergent",
+   "payload_ref": "attest:a",
+   "axis": {
+    "field": {
+     "mode": "anchored",
+     "anchor": "attest:a"
+    },
+    "delta": []
+   },
+   "axis_verdict": null,
+   "corruption": null,
+   "tentative": false,
+   "turn_key": "43b9231919848b668531aa92cf9dafad6dbbe0b12ae97dde9b13068c289d9033",
+   "block_version": "",
+   "attestation_ref": "Amihai: gate a holds (fixture TTY stand-in)"
+  },
+  "V": {
+   "address": "V",
+   "gate": "b",
+   "state": "attested",
+   "mark": "emergent",
+   "payload_ref": "attest:b",
+   "axis": {
+    "field": {
+     "mode": "anchored",
+     "anchor": "attest:b"
+    },
+    "delta": []
+   },
+   "axis_verdict": null,
+   "corruption": null,
+   "tentative": false,
+   "turn_key": "86da6f50cad7ff207a9d69e2dc03ffd0fef07e4c73345623867223ab688cec61",
+   "block_version": "",
+   "attestation_ref": "Amihai: gate b holds (fixture TTY stand-in)"
+  }
+ },
+ "transcript": [
+  {
+   "request": {
+    "method": "pane.list",
+    "params": {}
+   },
+   "response": {
+    "result": {
+     "type": "pane_list",
+     "panes": [
+      {
+       "pane_id": "w8:p2",
+       "workspace_id": "w8",
+       "tab_id": "t8",
+       "terminal_id": "term_2",
+       "agent_status": "unknown",
+       "focused": true,
+       "revision": 0,
+       "label": "podium"
+      },
+      {
+       "pane_id": "w8:p3",
+       "workspace_id": "w8",
+       "tab_id": "t8",
+       "terminal_id": "term_3",
+       "agent_status": "idle",
+       "focused": false,
+       "revision": 2,
+       "label": "G",
+       "agent": "pi",
+       "title": "π - the-cell"
+      },
+      {
+       "pane_id": "w8:p5",
+       "workspace_id": "w8",
+       "tab_id": "t8",
+       "terminal_id": "term_5",
+       "agent_status": "idle",
+       "focused": false,
+       "revision": 1,
+       "label": "Q",
+       "agent": "pi",
+       "title": "deploy@srv1707555: ~/the-cell"
+      },
+      {
+       "pane_id": "w8:p6",
+       "workspace_id": "w8",
+       "tab_id": "t8",
+       "terminal_id": "term_6",
+       "agent_status": "idle",
+       "focused": false,
+       "revision": 1,
+       "label": "P",
+       "agent": "pi",
+       "title": "deploy@srv1707555: ~/the-cell"
+      },
+      {
+       "pane_id": "w8:p4",
+       "workspace_id": "w8",
+       "tab_id": "t8",
+       "terminal_id": "term_4",
+       "agent_status": "idle",
+       "focused": false,
+       "revision": 1,
+       "label": "V",
+       "agent": "pi",
+       "title": "deploy@srv1707555: ~/the-cell"
+      }
+     ]
+    }
+   }
+  },
+  {
+   "request": {
+    "method": "pane.get",
+    "params": {
+     "pane_id": "w8:p3"
+    }
+   },
+   "response": {
+    "result": {
+     "type": "pane_info",
+     "pane": {
+      "pane_id": "w8:p3",
+      "workspace_id": "w8",
+      "tab_id": "t8",
+      "terminal_id": "term_3",
+      "agent_status": "idle",
+      "focused": false,
+      "revision": 2,
+      "label": "G",
+      "agent": "pi",
+      "title": "π - the-cell"
+     }
+    }
+   },
+   "note": "the §4.3 live-label assertion, read before the prompt"
+  },
+  {
+   "request": {
+    "method": "pane.get",
+    "params": {
+     "pane_id": "w8:p3"
+    }
+   },
+   "response": {
+    "result": {
+     "type": "pane_info",
+     "pane": {
+      "pane_id": "w8:p3",
+      "workspace_id": "w8",
+      "tab_id": "t8",
+      "terminal_id": "term_3",
+      "agent_status": "idle",
+      "focused": false,
+      "revision": 2,
+      "label": "G",
+      "agent": "pi",
+      "title": "π - the-cell"
+     }
+    }
+   },
+   "note": "the centre guard resolving the write target's label at call time (K5)"
+  },
+  {
+   "request": {
+    "method": "agent.prompt",
+    "params": {
+     "target": "w8:p3",
+     "text": "Desk G, gate y: turn the question. ∞0′ → ‖\nWhen your answer is complete, emit exactly this end marker on a line by itself, then stop:\n⟦END a49024a39a419dc8f608d442b8574813278bcedc3a4ff36d917f527ef9679a3b⟧"
+    }
+   },
+   "response": {
+    "result": {
+     "type": "agent_prompted",
+     "agent": {
+      "pane_id": "w8:p3",
+      "workspace_id": "w8",
+      "tab_id": "t8",
+      "terminal_id": "term_3",
+      "agent_status": "idle",
+      "focused": false,
+      "revision": 2,
+      "label": "G",
+      "agent": "pi",
+      "title": "π - the-cell",
+      "name": "pi",
+      "interactive_ready": true,
+      "launch_pending": false,
+      "screen_detection_skipped": false,
+      "state_change_seq": 0
+     }
+    }
+   },
+   "note": "the ONE write; response shape is a schema-derived claim (H-B2-4)"
+  },
+  {
+   "request": {
+    "method": "pane.wait_for_output",
+    "params": {
+     "pane_id": "w8:p3",
+     "source": "visible",
+     "match": {
+      "type": "substring",
+      "value": "⟦END a49024a39a419dc8f608d442b8574813278bcedc3a4ff36d917f527ef9679a3b⟧"
+     },
+     "strip_ansi": true,
+     "timeout_ms": 60000
+    }
+   },
+   "response": {
+    "result": {
+     "type": "output_matched",
+     "pane_id": "w8:p3",
+     "revision": 3,
+     "matched_line": "⟦END a49024a39a419dc8f608d442b8574813278bcedc3a4ff36d917f527ef9679a3b⟧",
+     "read": {
+      "pane_id": "w8:p3",
+      "workspace_id": "w8",
+      "tab_id": "t8",
+      "source": "visible",
+      "format": "text",
+      "text": "y complete: the question turns. ∞0′ → ‖\n⟦END a49024a39a419dc8f608d442b8574813278bcedc3a4ff36d917f527ef9679a3b⟧\n",
+      "truncated": false,
+      "revision": 3
+     }
+    }
+   },
+   "note": "the §4.5 fence read; response shape is a schema-derived claim (H-B2-4)"
+  },
+  {
+   "request": {
+    "method": "pane.list",
+    "params": {}
+   },
+   "response": {
+    "result": {
+     "type": "pane_list",
+     "panes": [
+      {
+       "pane_id": "w8:p2",
+       "workspace_id": "w8",
+       "tab_id": "t8",
+       "terminal_id": "term_2",
+       "agent_status": "unknown",
+       "focused": true,
+       "revision": 0,
+       "label": "podium"
+      },
+      {
+       "pane_id": "w8:p3",
+       "workspace_id": "w8",
+       "tab_id": "t8",
+       "terminal_id": "term_3",
+       "agent_status": "idle",
+       "focused": false,
+       "revision": 2,
+       "label": "G",
+       "agent": "pi",
+       "title": "π - the-cell"
+      },
+      {
+       "pane_id": "w8:p5",
+       "workspace_id": "w8",
+       "tab_id": "t8",
+       "terminal_id": "term_5",
+       "agent_status": "idle",
+       "focused": false,
+       "revision": 1,
+       "label": "Q",
+       "agent": "pi",
+       "title": "deploy@srv1707555: ~/the-cell"
+      },
+      {
+       "pane_id": "w8:p6",
+       "workspace_id": "w8",
+       "tab_id": "t8",
+       "terminal_id": "term_6",
+       "agent_status": "idle",
+       "focused": false,
+       "revision": 1,
+       "label": "P",
+       "agent": "pi",
+       "title": "deploy@srv1707555: ~/the-cell"
+      },
+      {
+       "pane_id": "w8:p4",
+       "workspace_id": "w8",
+       "tab_id": "t8",
+       "terminal_id": "term_4",
+       "agent_status": "idle",
+       "focused": false,
+       "revision": 1,
+       "label": "V",
+       "agent": "pi",
+       "title": "deploy@srv1707555: ~/the-cell"
+      }
+     ]
+    }
+   }
+  },
+  {
+   "request": {
+    "method": "pane.get",
+    "params": {
+     "pane_id": "w8:p5"
+    }
+   },
+   "response": {
+    "result": {
+     "type": "pane_info",
+     "pane": {
+      "pane_id": "w8:p5",
+      "workspace_id": "w8",
+      "tab_id": "t8",
+      "terminal_id": "term_5",
+      "agent_status": "idle",
+      "focused": false,
+      "revision": 1,
+      "label": "Q",
+      "agent": "pi",
+      "title": "deploy@srv1707555: ~/the-cell"
+     }
+    }
+   },
+   "note": "the §4.3 live-label assertion, read before the prompt"
+  },
+  {
+   "request": {
+    "method": "pane.get",
+    "params": {
+     "pane_id": "w8:p5"
+    }
+   },
+   "response": {
+    "result": {
+     "type": "pane_info",
+     "pane": {
+      "pane_id": "w8:p5",
+      "workspace_id": "w8",
+      "tab_id": "t8",
+      "terminal_id": "term_5",
+      "agent_status": "idle",
+      "focused": false,
+      "revision": 1,
+      "label": "Q",
+      "agent": "pi",
+      "title": "deploy@srv1707555: ~/the-cell"
+     }
+    }
+   },
+   "note": "the centre guard resolving the write target's label at call time (K5)"
+  },
+  {
+   "request": {
+    "method": "agent.prompt",
+    "params": {
+     "target": "w8:p5",
+     "text": "Desk Q, gate z: ask the question. ∞0′ → ‖\nWhen your answer is complete, emit exactly this end marker on a line by itself, then stop:\n⟦END a0a4670db1c2f728c71bb9f512dae8fe24e7e4ccb9913716b4a5326695ead635⟧"
+    }
+   },
+   "response": {
+    "result": {
+     "type": "agent_prompted",
+     "agent": {
+      "pane_id": "w8:p5",
+      "workspace_id": "w8",
+      "tab_id": "t8",
+      "terminal_id": "term_5",
+      "agent_status": "idle",
+      "focused": false,
+      "revision": 1,
+      "label": "Q",
+      "agent": "pi",
+      "title": "deploy@srv1707555: ~/the-cell",
+      "name": "pi",
+      "interactive_ready": true,
+      "launch_pending": false,
+      "screen_detection_skipped": false,
+      "state_change_seq": 0
+     }
+    }
+   },
+   "note": "the ONE write; response shape is a schema-derived claim (H-B2-4)"
+  },
+  {
+   "request": {
+    "method": "pane.wait_for_output",
+    "params": {
+     "pane_id": "w8:p5",
+     "source": "visible",
+     "match": {
+      "type": "substring",
+      "value": "⟦END a0a4670db1c2f728c71bb9f512dae8fe24e7e4ccb9913716b4a5326695ead635⟧"
+     },
+     "strip_ansi": true,
+     "timeout_ms": 60000
+    }
+   },
+   "response": {
+    "result": {
+     "type": "output_matched",
+     "pane_id": "w8:p5",
+     "revision": 3,
+     "matched_line": "⟦END a0a4670db1c2f728c71bb9f512dae8fe24e7e4ccb9913716b4a5326695ead635⟧",
+     "read": {
+      "pane_id": "w8:p5",
+      "workspace_id": "w8",
+      "tab_id": "t8",
+      "source": "visible",
+      "format": "text",
+      "text": "z complete: the question asks. ∞0′ → ‖\n⟦END a0a4670db1c2f728c71bb9f512dae8fe24e7e4ccb9913716b4a5326695ead635⟧\n",
+      "truncated": false,
+      "revision": 3
+     }
+    }
+   },
+   "note": "the §4.5 fence read; response shape is a schema-derived claim (H-B2-4)"
+  },
+  {
+   "request": {
+    "method": "pane.list",
+    "params": {}
+   },
+   "response": {
+    "result": {
+     "type": "pane_list",
+     "panes": [
+      {
+       "pane_id": "w8:p2",
+       "workspace_id": "w8",
+       "tab_id": "t8",
+       "terminal_id": "term_2",
+       "agent_status": "unknown",
+       "focused": true,
+       "revision": 0,
+       "label": "podium"
+      },
+      {
+       "pane_id": "w8:p3",
+       "workspace_id": "w8",
+       "tab_id": "t8",
+       "terminal_id": "term_3",
+       "agent_status": "idle",
+       "focused": false,
+       "revision": 2,
+       "label": "G",
+       "agent": "pi",
+       "title": "π - the-cell"
+      },
+      {
+       "pane_id": "w8:p5",
+       "workspace_id": "w8",
+       "tab_id": "t8",
+       "terminal_id": "term_5",
+       "agent_status": "idle",
+       "focused": false,
+       "revision": 1,
+       "label": "Q",
+       "agent": "pi",
+       "title": "deploy@srv1707555: ~/the-cell"
+      },
+      {
+       "pane_id": "w8:p6",
+       "workspace_id": "w8",
+       "tab_id": "t8",
+       "terminal_id": "term_6",
+       "agent_status": "idle",
+       "focused": false,
+       "revision": 1,
+       "label": "P",
+       "agent": "pi",
+       "title": "deploy@srv1707555: ~/the-cell"
+      },
+      {
+       "pane_id": "w8:p4",
+       "workspace_id": "w8",
+       "tab_id": "t8",
+       "terminal_id": "term_4",
+       "agent_status": "idle",
+       "focused": false,
+       "revision": 1,
+       "label": "V",
+       "agent": "pi",
+       "title": "deploy@srv1707555: ~/the-cell"
+      }
+     ]
+    }
+   }
+  },
+  {
+   "request": {
+    "method": "pane.get",
+    "params": {
+     "pane_id": "w8:p6"
+    }
+   },
+   "response": {
+    "result": {
+     "type": "pane_info",
+     "pane": {
+      "pane_id": "w8:p6",
+      "workspace_id": "w8",
+      "tab_id": "t8",
+      "terminal_id": "term_6",
+      "agent_status": "idle",
+      "focused": false,
+      "revision": 1,
+      "label": "P",
+      "agent": "pi",
+      "title": "deploy@srv1707555: ~/the-cell"
+     }
+    }
+   },
+   "note": "the §4.3 live-label assertion, read before the prompt"
+  },
+  {
+   "request": {
+    "method": "pane.get",
+    "params": {
+     "pane_id": "w8:p6"
+    }
+   },
+   "response": {
+    "result": {
+     "type": "pane_info",
+     "pane": {
+      "pane_id": "w8:p6",
+      "workspace_id": "w8",
+      "tab_id": "t8",
+      "terminal_id": "term_6",
+      "agent_status": "idle",
+      "focused": false,
+      "revision": 1,
+      "label": "P",
+      "agent": "pi",
+      "title": "deploy@srv1707555: ~/the-cell"
+     }
+    }
+   },
+   "note": "the centre guard resolving the write target's label at call time (K5)"
+  },
+  {
+   "request": {
+    "method": "agent.prompt",
+    "params": {
+     "target": "w8:p6",
+     "text": "Desk P, gate a: press the question. ∞0′ → ‖\nWhen your answer is complete, emit exactly this end marker on a line by itself, then stop:\n⟦END a1b979f08b8efa66e94fe1d4af1cff432cff74e10fbc3345ea179409015ba940⟧"
+    }
+   },
+   "response": {
+    "result": {
+     "type": "agent_prompted",
+     "agent": {
+      "pane_id": "w8:p6",
+      "workspace_id": "w8",
+      "tab_id": "t8",
+      "terminal_id": "term_6",
+      "agent_status": "idle",
+      "focused": false,
+      "revision": 1,
+      "label": "P",
+      "agent": "pi",
+      "title": "deploy@srv1707555: ~/the-cell",
+      "name": "pi",
+      "interactive_ready": true,
+      "launch_pending": false,
+      "screen_detection_skipped": false,
+      "state_change_seq": 0
+     }
+    }
+   },
+   "note": "the ONE write; response shape is a schema-derived claim (H-B2-4)"
+  },
+  {
+   "request": {
+    "method": "pane.wait_for_output",
+    "params": {
+     "pane_id": "w8:p6",
+     "source": "visible",
+     "match": {
+      "type": "substring",
+      "value": "⟦END a1b979f08b8efa66e94fe1d4af1cff432cff74e10fbc3345ea179409015ba940⟧"
+     },
+     "strip_ansi": true,
+     "timeout_ms": 60000
+    }
+   },
+   "response": {
+    "result": {
+     "type": "output_matched",
+     "pane_id": "w8:p6",
+     "revision": 3,
+     "matched_line": "⟦END a1b979f08b8efa66e94fe1d4af1cff432cff74e10fbc3345ea179409015ba940⟧",
+     "read": {
+      "pane_id": "w8:p6",
+      "workspace_id": "w8",
+      "tab_id": "t8",
+      "source": "visible",
+      "format": "text",
+      "text": "a complete: the question presses. ∞0′ → ‖\n⟦END a1b979f08b8efa66e94fe1d4af1cff432cff74e10fbc3345ea179409015ba940⟧\n",
+      "truncated": false,
+      "revision": 3
+     }
+    }
+   },
+   "note": "the §4.5 fence read; response shape is a schema-derived claim (H-B2-4)"
+  },
+  {
+   "request": {
+    "method": "pane.list",
+    "params": {}
+   },
+   "response": {
+    "result": {
+     "type": "pane_list",
+     "panes": [
+      {
+       "pane_id": "w8:p2",
+       "workspace_id": "w8",
+       "tab_id": "t8",
+       "terminal_id": "term_2",
+       "agent_status": "unknown",
+       "focused": true,
+       "revision": 0,
+       "label": "podium"
+      },
+      {
+       "pane_id": "w8:p3",
+       "workspace_id": "w8",
+       "tab_id": "t8",
+       "terminal_id": "term_3",
+       "agent_status": "idle",
+       "focused": false,
+       "revision": 2,
+       "label": "G",
+       "agent": "pi",
+       "title": "π - the-cell"
+      },
+      {
+       "pane_id": "w8:p5",
+       "workspace_id": "w8",
+       "tab_id": "t8",
+       "terminal_id": "term_5",
+       "agent_status": "idle",
+       "focused": false,
+       "revision": 1,
+       "label": "Q",
+       "agent": "pi",
+       "title": "deploy@srv1707555: ~/the-cell"
+      },
+      {
+       "pane_id": "w8:p6",
+       "workspace_id": "w8",
+       "tab_id": "t8",
+       "terminal_id": "term_6",
+       "agent_status": "idle",
+       "focused": false,
+       "revision": 1,
+       "label": "P",
+       "agent": "pi",
+       "title": "deploy@srv1707555: ~/the-cell"
+      },
+      {
+       "pane_id": "w8:p4",
+       "workspace_id": "w8",
+       "tab_id": "t8",
+       "terminal_id": "term_4",
+       "agent_status": "idle",
+       "focused": false,
+       "revision": 1,
+       "label": "V",
+       "agent": "pi",
+       "title": "deploy@srv1707555: ~/the-cell"
+      }
+     ]
+    }
+   }
+  },
+  {
+   "request": {
+    "method": "pane.get",
+    "params": {
+     "pane_id": "w8:p4"
+    }
+   },
+   "response": {
+    "result": {
+     "type": "pane_info",
+     "pane": {
+      "pane_id": "w8:p4",
+      "workspace_id": "w8",
+      "tab_id": "t8",
+      "terminal_id": "term_4",
+      "agent_status": "idle",
+      "focused": false,
+      "revision": 1,
+      "label": "V",
+      "agent": "pi",
+      "title": "deploy@srv1707555: ~/the-cell"
+     }
+    }
+   },
+   "note": "the §4.3 live-label assertion, read before the prompt"
+  },
+  {
+   "request": {
+    "method": "pane.get",
+    "params": {
+     "pane_id": "w8:p4"
+    }
+   },
+   "response": {
+    "result": {
+     "type": "pane_info",
+     "pane": {
+      "pane_id": "w8:p4",
+      "workspace_id": "w8",
+      "tab_id": "t8",
+      "terminal_id": "term_4",
+      "agent_status": "idle",
+      "focused": false,
+      "revision": 1,
+      "label": "V",
+      "agent": "pi",
+      "title": "deploy@srv1707555: ~/the-cell"
+     }
+    }
+   },
+   "note": "the centre guard resolving the write target's label at call time (K5)"
+  },
+  {
+   "request": {
+    "method": "agent.prompt",
+    "params": {
+     "target": "w8:p4",
+     "text": "Desk V, gate b: view the question. ∞0′ → ‖\nWhen your answer is complete, emit exactly this end marker on a line by itself, then stop:\n⟦END 6e9a0a07f78bdb40368438783e25dba55ef6c01726009851b310f18dec745a90⟧"
+    }
+   },
+   "response": {
+    "result": {
+     "type": "agent_prompted",
+     "agent": {
+      "pane_id": "w8:p4",
+      "workspace_id": "w8",
+      "tab_id": "t8",
+      "terminal_id": "term_4",
+      "agent_status": "idle",
+      "focused": false,
+      "revision": 1,
+      "label": "V",
+      "agent": "pi",
+      "title": "deploy@srv1707555: ~/the-cell",
+      "name": "pi",
+      "interactive_ready": true,
+      "launch_pending": false,
+      "screen_detection_skipped": false,
+      "state_change_seq": 0
+     }
+    }
+   },
+   "note": "the ONE write; response shape is a schema-derived claim (H-B2-4)"
+  },
+  {
+   "request": {
+    "method": "pane.wait_for_output",
+    "params": {
+     "pane_id": "w8:p4",
+     "source": "visible",
+     "match": {
+      "type": "substring",
+      "value": "⟦END 6e9a0a07f78bdb40368438783e25dba55ef6c01726009851b310f18dec745a90⟧"
+     },
+     "strip_ansi": true,
+     "timeout_ms": 60000
+    }
+   },
+   "response": {
+    "result": {
+     "type": "output_matched",
+     "pane_id": "w8:p4",
+     "revision": 3,
+     "matched_line": "⟦END 6e9a0a07f78bdb40368438783e25dba55ef6c01726009851b310f18dec745a90⟧",
+     "read": {
+      "pane_id": "w8:p4",
+      "workspace_id": "w8",
+      "tab_id": "t8",
+      "source": "visible",
+      "format": "text",
+      "text": "b complete: the question views. ∞0′ → ‖\n⟦END 6e9a0a07f78bdb40368438783e25dba55ef6c01726009851b310f18dec745a90⟧\n",
+      "truncated": false,
+      "revision": 3
+     }
+    }
+   },
+   "note": "the §4.5 fence read; response shape is a schema-derived claim (H-B2-4)"
+  }
+ ],
+ "ledger_seed": [
+  {
+   "address": "",
+   "attestation_ref": "Start from Not Knowing",
+   "axis": {
+    "delta": [],
+    "field": {
+     "anchor": "a5935788fe3c6803284257c6bbc9e2914ac40a6698ec4ba62dce50345deb130e",
+     "mode": "anchored"
+    }
+   },
+   "axis_verdict": null,
+   "block_version": "g-essence@3",
+   "corruption": null,
+   "gate": "x",
+   "mark": "emergent",
+   "payload_ref": "a5935788fe3c6803284257c6bbc9e2914ac40a6698ec4ba62dce50345deb130e",
+   "prev_hash": "GENESIS",
+   "record_id": "739773e8344e9703e3215b47cd84cc12b376da9e1dbb5c0c757761529505e279",
+   "state": "attested",
+   "tentative": false,
+   "ts": "2026-08-27T15:02:15.123429Z",
+   "turn_key": "5f7ae90a8a5ed912c34fbd6f2ed4283ca4f8414a532c0da34efa53ccea958854"
+  }
+ ],
+ "timeline": [
+  {
+   "act": "boot",
+   "expect": {
+    "ok": true,
+    "due": "G",
+    "position_gate": "x",
+    "socket_requests_so_far": 0,
+    "note": "boot touches the socket not at all"
+   }
+  },
+  {
+   "act": "take_turn G",
+   "expect": {
+    "status": "proposed",
+    "gate": "y",
+    "turn_key": "a49024a39a419dc8f608d442b8574813278bcedc3a4ff36d917f527ef9679a3b"
+   }
+  },
+  {
+   "act": "advance",
+   "expect": {
+    "status": "refused",
+    "refusal_turn_key": "69edb9b8a5f56d607a1c915c150bb8e52c8f19f6c1b15abdb87852055980b354",
+    "note": "C2: no attestation for (G, y) yet"
+   }
+  },
+  {
+   "act": "attest y (human, TTY stand-in appends the record)",
+   "expect": {
+    "note": "only the human writes state attested"
+   }
+  },
+  {
+   "act": "advance",
+   "expect": {
+    "status": "due",
+    "due_desk": "Q"
+   }
+  },
+  {
+   "act": "take_turn Q",
+   "expect": {
+    "status": "proposed",
+    "gate": "z",
+    "turn_key": "a0a4670db1c2f728c71bb9f512dae8fe24e7e4ccb9913716b4a5326695ead635"
+   }
+  },
+  {
+   "act": "attest z (human)"
+  },
+  {
+   "act": "advance",
+   "expect": {
+    "status": "due",
+    "due_desk": "P"
+   }
+  },
+  {
+   "act": "take_turn P",
+   "expect": {
+    "status": "proposed",
+    "gate": "a",
+    "turn_key": "a1b979f08b8efa66e94fe1d4af1cff432cff74e10fbc3345ea179409015ba940"
+   }
+  },
+  {
+   "act": "attest a (human)"
+  },
+  {
+   "act": "advance",
+   "expect": {
+    "status": "due",
+    "due_desk": "V"
+   }
+  },
+  {
+   "act": "take_turn V",
+   "expect": {
+    "status": "proposed",
+    "gate": "b",
+    "turn_key": "6e9a0a07f78bdb40368438783e25dba55ef6c01726009851b310f18dec745a90"
+   }
+  },
+  {
+   "act": "attest b (human)"
+  },
+  {
+   "act": "advance",
+   "expect": {
+    "status": "complete"
+   }
+  }
+ ],
+ "expected_ledger_sequence": [
+  {
+   "address": "",
+   "gate": "x",
+   "state": "attested",
+   "kind": "plant"
+  },
+  {
+   "address": "G",
+   "gate": "y",
+   "state": "held-pending",
+   "kind": "proposal",
+   "turn_key": "a49024a39a419dc8f608d442b8574813278bcedc3a4ff36d917f527ef9679a3b"
+  },
+  {
+   "address": "G",
+   "gate": "y",
+   "state": "held-pending",
+   "kind": "refusal",
+   "turn_key": "69edb9b8a5f56d607a1c915c150bb8e52c8f19f6c1b15abdb87852055980b354"
+  },
+  {
+   "address": "G",
+   "gate": "y",
+   "state": "attested",
+   "kind": "human",
+   "turn_key": "4e37acf8b261bb970495354d187bca8f9ff35144300177cad7c23dc0f8364721"
+  },
+  {
+   "address": "Q",
+   "gate": "z",
+   "state": "held-pending",
+   "kind": "proposal",
+   "turn_key": "a0a4670db1c2f728c71bb9f512dae8fe24e7e4ccb9913716b4a5326695ead635"
+  },
+  {
+   "address": "Q",
+   "gate": "z",
+   "state": "attested",
+   "kind": "human",
+   "turn_key": "c5433a2cd974f7cd2f74203f0b6b7f5e56959b058831604370988461e43d88ac"
+  },
+  {
+   "address": "P",
+   "gate": "a",
+   "state": "held-pending",
+   "kind": "proposal",
+   "turn_key": "a1b979f08b8efa66e94fe1d4af1cff432cff74e10fbc3345ea179409015ba940"
+  },
+  {
+   "address": "P",
+   "gate": "a",
+   "state": "attested",
+   "kind": "human",
+   "turn_key": "43b9231919848b668531aa92cf9dafad6dbbe0b12ae97dde9b13068c289d9033"
+  },
+  {
+   "address": "V",
+   "gate": "b",
+   "state": "held-pending",
+   "kind": "proposal",
+   "turn_key": "6e9a0a07f78bdb40368438783e25dba55ef6c01726009851b310f18dec745a90"
+  },
+  {
+   "address": "V",
+   "gate": "b",
+   "state": "attested",
+   "kind": "human",
+   "turn_key": "86da6f50cad7ff207a9d69e2dc03ffd0fef07e4c73345623867223ab688cec61"
+  }
+ ],
+ "server_rules": {
+  "note": "the live dialect of commission §3.1 / R03 §6.3: request envelope {\"id\",\"method\",\"params\"} with a STRING id; a non-string id is refused before dispatch, exactly as herdr 0.8.2 was probed to do",
+  "non_string_id_refusal_example": {
+   "request": {
+    "id": 7,
+    "method": "ping",
+    "params": {}
+   },
+   "response": {
+    "id": "",
+    "error": {
+     "code": "invalid_request",
+     "message": "invalid request: invalid type for id"
+    }
+   }
+  }
+ },
+ "claims": [
+  "agent.prompt success: {\"type\": \"agent_prompted\", \"agent\": AgentInfo} — schema-derived (herdr-api.schema.json protocol 20), NEVER live-probed; unproven (H-B2-4).",
+  "pane.wait_for_output success: {\"type\": \"output_matched\", \"pane_id\", \"revision\", \"read\": PaneReadResult, \"matched_line\"?} — schema-derived, unproven (H-B2-4).",
+  "pane.wait_for_output timeout: {\"error\": {\"code\": \"timeout\", ...}} — the error code name is this round's declared claim, unproven (H-B2-4).",
+  "pane ids w8:* and the read-shape fields replicate the probed live shapes of R02-B1 commission §3.1/§3.2; the Q/P/V desks carrying answering agents is SYNTHETIC — live they carry agent null (R02 §3.2) and the live write tier is the verifier's (H-B2-5)."
+ ],
+ "pi_home": {
+  "agent/settings.json": {
+   "lastChangelogVersion": "0.84.2",
+   "skills": [
+    "the-cell-gate"
+   ]
+  },
+  "skills": null
+ },
+ "blocks": {
+  "S": {
+   "instruction": null,
+   "skills": [],
+   "tools": null,
+   "model": null
+  },
+  "G": {
+   "instruction": "fixture placeholder — not a real desk instruction",
+   "skills": [
+    "the-cell-gate"
+   ],
+   "tools": [
+    "tools.list",
+    "tools.read"
+   ],
+   "model": {
+    "provider": "anthropic",
+    "model": "claude-*"
+   }
+  },
+  "Q": {
+   "instruction": "fixture placeholder — not a real desk instruction",
+   "skills": [
+    "the-cell-gate"
+   ],
+   "tools": [
+    "tools.list",
+    "tools.read"
+   ],
+   "model": {
+    "provider": "anthropic",
+    "model": "claude-*"
+   }
+  },
+  "P": {
+   "instruction": "fixture placeholder — not a real desk instruction",
+   "skills": [
+    "the-cell-gate"
+   ],
+   "tools": [
+    "tools.list",
+    "tools.read"
+   ],
+   "model": {
+    "provider": "anthropic",
+    "model": "claude-*"
+   }
+  },
+  "V": {
+   "instruction": "fixture placeholder — not a real desk instruction",
+   "skills": [
+    "the-cell-gate"
+   ],
+   "tools": [
+    "tools.list",
+    "tools.read"
+   ],
+   "model": {
+    "provider": "anthropic",
+    "model": "claude-*"
+   }
+  }
+ }
+}

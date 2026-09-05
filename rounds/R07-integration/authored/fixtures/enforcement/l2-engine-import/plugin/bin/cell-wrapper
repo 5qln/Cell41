@@ -1,0 +1,5 @@
+#!/usr/bin/env python3
+# fixture: a deliberately-injected L2 violation — a soft-layer file
+# importing the pinned engine modules DIRECTLY (the CLI is the only path)
+from word import decode_scenario
+print(decode_scenario(None))

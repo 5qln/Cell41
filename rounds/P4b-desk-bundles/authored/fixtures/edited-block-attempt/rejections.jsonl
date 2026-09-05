@@ -1,0 +1,2 @@
+{"attempt":"in-place edit","reason":"write-once (C1, L1): the block is frozen; a new version is a new block, never an edit of the old one","seq":1,"target":"sample@1/instruction.md"}
+{"attempt":"re-author","reason":"write-once (C1, L1): a new version is a new block, never an edit of the old one","seq":2,"target":"sample@1"}

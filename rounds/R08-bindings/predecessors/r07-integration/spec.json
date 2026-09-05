@@ -1,0 +1,33 @@
+{
+  "spec_version": 1,
+  "round": "integration",
+  "work_dir": "/home/deploy/the-cell/state",
+  "scenario": null,
+  "ledger": "/home/deploy/the-cell/state/gates.jsonl",
+  "trail": "/home/deploy/the-cell/state/trail.jsonl",
+  "live_socket": null,
+  "socket_dir": null,
+  "materialize": null,
+  "materialized": null,
+  "soft_config": "/home/deploy/.config/herdr/soft.json",
+  "observe_states": true,
+  "block_version": "",
+  "scope": "integration-live-cell",
+  "clock": null,
+  "wait_timeout_ms": 120000,
+  "timeout_s": 30.0,
+  "max_steps": null,
+  "notes": {
+    "scenario": "D2 open — the acceptance word is Amihai's to choose; no live scenario is declared until he names it, and /conduct over this spec refuses (INCONCLUSIVE, never a stand-in)",
+    "ledger": "his plant (state/gates.jsonl) — the first real /conduct appends per-gate records; verify-integration.sh re-checks the plant sha",
+    "trail": "the cell's readable B4 trail — the file the first real /conduct appends",
+    "live_socket": "null = the engine's own resolution (HERDR_SOCKET_PATH → ~/.config/herdr/herdr.sock) — never resolved in the wrapper (the pinned Instrument is the only client)",
+    "materialize": "null = \"not every run\"; the first real run's materialize dir is W4's decision",
+    "materialized": "null = no already-materialized word is declared for the live cell yet (W4)",
+    "soft_config": "H-BRIDGE-2's provisional location — written by the constitution (W3), read by the engine",
+    "wait_timeout_ms": "PROVISIONAL (H-INT-4, Seam E): 120000 is a placeholder for real Pi thinking turns — the true numbers are unknown until the first real run (W4) and live here as data, never in code",
+    "timeout_s": "PROVISIONAL: the engine default is 10.0 s; the live value is unknown until W4 (Seam E)",
+    "max_steps": "null = no caller step budget — the word's length is the walk's bound",
+    "clock": "null = the engine's declared clock default; the live numbers are corrected at W4 (Seam E)"
+  }
+}

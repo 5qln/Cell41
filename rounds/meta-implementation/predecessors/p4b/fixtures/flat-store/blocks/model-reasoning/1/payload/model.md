@@ -1,0 +1,1 @@
+model block (PRD §7 note): "Desk model reality today: pi --provider kimi-coding --model kimi-k3. Check the live OPERATOR-GUIDE before booting — the model is a block, swappable, never hardcoded in doctrine."

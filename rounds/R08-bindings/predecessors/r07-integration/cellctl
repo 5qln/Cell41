@@ -1,0 +1,662 @@
+#!/usr/bin/env python3
+"""cellctl — the seam CLI (the integration round, C1/C2/C3/C5/C6/C7).
+
+A thin, logic-free command surface over the attested engine: each
+subcommand parses its arguments and makes exactly ONE engine call.
+The wrapper contains no socket code, no prompt assembly, no
+record-writing, no ledger/trail logic — the only socket client on the
+box remains the pinned engine's ``Instrument.call`` (R06 C7).  The
+engine is imported by path, sha-pinned, through ``surface_contract``
+(C7 — a drifted or missing pin refuses the import).  The write side
+(``agent.prompt``) is deliberately NOT exposed as a command (C2).
+
+/conduct (candidate name — D4, his to name) is a binding of the
+engine's own ``orchestrate.main``: the wrapper resolves the live cell
+spec (data), takes ONE flock on the cell's work dir around the whole
+run (C5 — in the wrapper, never the engine), and forwards the
+resolved paths to the engine's CLI.  ``--plan-only`` makes exactly
+the two direct calls the C3 criterion names (``word.decode_scenario``
++ ``navigate.plan_walk``) and emits the plan report with the declared
+serialization — byte-identical to the reference runner
+(``fixtures/plan_equivalence.py``), proving the wrapper adds nothing.
+
+Exit codes (declared in SEAM_SURFACE): 0 = the report's declared
+success status; 1 = any other status (absent / malformed /
+INCONCLUSIVE — a blind spot never reads clean); /conduct passes the
+engine's own codes through (0/1/3/4, argparse 2).  Every report is
+UTF-8 JSON, ensure_ascii=False, sort_keys=True — byte-exact, never
+normalised (K2); /compile writes the emitted surface bytes raw.
+
+Deterministic and stdlib-only: no network, no LLM, no wall-clock in
+logic, no subprocess (K1).  The authoring pass uses fixtures only —
+no live agent.prompt is sent this round (H-INT-1).
+"""
+
+from __future__ import annotations
+
+import argparse
+import fcntl
+import hashlib
+import json
+import os
+import sys
+import tempfile
+
+sys.dont_write_bytecode = True
+
+_HERE = os.path.dirname(os.path.abspath(__file__))
+if _HERE not in sys.path:
+    sys.path.insert(0, _HERE)
+
+import surface_contract as sc  # noqa: E402  (the sha-pinned seam)
+
+
+# ---------------------------------------------------------------------------
+# Output discipline — the declared serialization (SEAM_SURFACE.serialization).
+# ---------------------------------------------------------------------------
+
+def _emit(report):
+    sys.stdout.write(json.dumps(report, ensure_ascii=False, sort_keys=True,
+                                separators=(",", ":")) + "\n")
+
+
+def _refuse(reason, status="inconclusive", code=1):
+    _emit({"status": status, "reason": reason})
+    return code
+
+
+# ---------------------------------------------------------------------------
+# Spec plumbing (data — the loader's schema refusal is the seam's).
+# ---------------------------------------------------------------------------
+
+def _load_spec_or_refuse(path, code=1):
+    """-> (report, spec|None).  The loader refuses absent/empty/
+    malformed/unknown-field specs — INCONCLUSIVE, never a stand-in."""
+    report = sc.load_cell_spec(path)
+    if report.get("status") != "ok":
+        return (_refuse(report.get("reason", report.get("status")),
+                        report.get("status"), code), None)
+    return (None, report["spec"])
+
+
+def _resolved_or_refuse(spec, path, code=1):
+    resolved = sc.resolve_cell_spec(spec, os.path.dirname(
+        os.path.abspath(path)))
+    if resolved.get("status") != "ok":
+        return (_refuse(resolved.get("reason", "the spec cannot be "
+                                      "resolved"), code), None)
+    return (None, resolved)
+
+
+def _read_json_arg(value, what):
+    """An inline JSON string or a JSON file — parsing inputs is the
+    wrapper's declared job (C1); the value rides verbatim (K2)."""
+    if value is None:
+        return None
+    try:
+        return json.loads(value)
+    except json.JSONDecodeError:
+        pass
+    try:
+        with open(value, "rb") as handle:
+            raw = handle.read()
+    except OSError as exc:
+        raise SystemExit(_refuse(
+            "%s: %r is neither inline JSON nor a readable file (%s)"
+            % (what, value, exc)))
+    try:
+        return json.loads(raw.decode("utf-8"))
+    except (UnicodeDecodeError, json.JSONDecodeError) as exc:
+        raise SystemExit(_refuse(
+            "%s: the file %r is not valid UTF-8 JSON (%s)"
+            % (what, value, exc)))
+
+
+# ---------------------------------------------------------------------------
+# The subcommands — one engine call each.
+# ---------------------------------------------------------------------------
+
+def cmd_word(args):
+    """C1 — wrap word.load_scenario_file (a path) or word.decode_scenario
+    (--stdin raw bytes / --json inline JSON).  One call."""
+    if args.stdin:
+        report = sc.word.decode_scenario(sys.stdin.buffer.read())
+    elif args.json is not None:
+        report = sc.word.decode_scenario(args.json.encode("utf-8"))
+    else:
+        report = sc.word.load_scenario_file(args.scenario)
+    _emit(report)
+    return 0 if report.get("status") == "ok" else 1
+
+
+def cmd_plan(args):
+    """C1 — wrap navigate.plan_walk over a DECODED scenario (the
+    word.decode_scenario "scenario" object).  One call, pure."""
+    scenario = _read_json_arg(args.scenario, "the decoded scenario")
+    try:
+        report = sc.navigate.plan_walk(scenario)
+    except Exception as exc:  # the engine refused — fail closed
+        return _refuse("the plan refused: %s" % exc)
+    _emit(report)
+    return 0 if report.get("status") == "ok" else 1
+
+
+def cmd_materialize(args):
+    """C1 — wrap materialize.materialize (--verify: read_materialized).
+    One call; the write path is the engine's, not the wrapper's."""
+    scenario = _read_json_arg(args.scenario, "the decoded scenario")
+    visits = None
+    if args.visits is not None:
+        plan = _read_json_arg(args.visits, "the plan")
+        visits = plan.get("visits") if isinstance(plan, dict) else None
+        if visits is None:
+            return _refuse("the --visits file carries no 'visits' list "
+                           "(a navigate.plan_walk report)")
+    try:
+        if args.verify:
+            report = sc.materialize.read_materialized(
+                scenario, args.out, visits=visits)
+        else:
+            report = sc.materialize.materialize(scenario, args.out,
+                                                visits=visits)
+    except Exception as exc:  # the engine refused — fail closed
+        return _refuse("the materializer refused: %s" % exc)
+    _emit(report)
+    return 0 if report.get("status") in ("materialized", "ok") else 1
+
+
+def _conduct_plan_only(args):
+    """C3 — --plan-only: word.decode_scenario + navigate.plan_walk over
+    the same scenario bytes, emitted with the declared serialization —
+    byte-identical to the reference runner (the wrapper adds nothing).
+    Pure: no lock, no work dir, no engine CLI."""
+    path = args.scenario
+    try:
+        with open(path, "rb") as handle:
+            raw = handle.read()
+    except OSError as exc:
+        return _refuse("no scenario file at %r (%s) — nothing to plan"
+                       % (path, exc), "absent")
+    decode = sc.word.decode_scenario(raw)
+    if decode.get("status") != "ok":
+        _emit({"status": decode.get("status"),
+               "reason": decode.get("reason")})
+        return 1
+    plan = sc.navigate.plan_walk(decode["scenario"])
+    _emit(plan)
+    return 0 if plan.get("status") == "ok" else 1
+
+
+def _acquire_run_lock(work_dir):
+    """C5 — one flock on the cell's work dir around the whole run, in
+    the wrapper (never the engine).  A second /conduct on the same
+    work dir BLOCKS rather than interleaves.  A missing work dir is
+    refused (fail closed, never created silently)."""
+    if not os.path.isdir(work_dir):
+        raise SystemExit(_refuse(
+            "the spec's work_dir %r does not exist — the run lock has "
+            "nowhere to live; INCONCLUSIVE, never a silently created "
+            "dir" % work_dir))
+    lock_path = os.path.join(work_dir, ".cellctl.lock")
+    fd = os.open(lock_path, os.O_CREAT | os.O_RDWR, 0o644)
+    fcntl.flock(fd, fcntl.LOCK_EX)  # blocks — never interleaves (C5)
+    return fd
+
+
+def _release_run_lock(fd):
+    try:
+        fcntl.flock(fd, fcntl.LOCK_UN)
+    finally:
+        os.close(fd)
+
+
+def cmd_conduct(args):
+    """C1/C5 — /conduct is a binding of the engine's own orchestrate.main:
+    resolve the cell spec (data), take the run lock, hand the resolved
+    paths to the engine's CLI (the engine prints, the engine exits —
+    codes 0/1/3/4 pass through untouched).  --plan-only (C3) never
+    reaches the run path."""
+    if args.plan_only:
+        return _conduct_plan_only(args)
+    refused, spec = _load_spec_or_refuse(args.spec)
+    if refused is not None:
+        return refused
+    refused, resolved = _resolved_or_refuse(spec, args.spec)
+    if refused is not None:
+        return refused
+    if resolved.get("scenario") is None:
+        return _refuse(
+            "the cell spec declares no scenario (D2 open — the "
+            "acceptance word is Amihai's to choose): /conduct refuses, "
+            "INCONCLUSIVE — never a fixture stand-in")
+    if resolved.get("ledger") is None or resolved.get("trail") is None:
+        return _refuse("the cell spec's ledger/trail do not resolve — "
+                       "the run has nowhere to record; INCONCLUSIVE")
+    max_steps = resolved.get("max_steps")
+    if args.max_steps is not None:
+        max_steps = args.max_steps
+    fd = _acquire_run_lock(resolved["work_dir"])
+    try:
+        with tempfile.NamedTemporaryFile(
+                "w", encoding="utf-8", suffix=".json", delete=True) \
+                as engine_spec_file:
+            engine_spec_file.write(json.dumps(
+                resolved["engine_spec"], ensure_ascii=False,
+                sort_keys=True, separators=(",", ":")))
+            engine_spec_file.flush()
+            argv = ["--scenario", resolved["scenario"],
+                    "--ledger", resolved["ledger"],
+                    "--trail", resolved["trail"],
+                    "--spec", engine_spec_file.name]
+            if resolved.get("socket_dir"):
+                argv += ["--socket-dir", resolved["socket_dir"]]
+            if max_steps is not None:
+                argv += ["--max-steps", str(max_steps)]
+            # the engine's own CLI: it prints the run result and returns
+            # 0/1/3/4 — passed through, never re-mapped, never re-printed
+            return sc.orchestrate.main(argv)
+    finally:
+        _release_run_lock(fd)
+
+
+def cmd_walk(args):
+    """C1 — wrap navigate.walk over the attested live wiring
+    (orchestrate._LiveWorld — the SCOPE §1.1 binding).  One call; the
+    composite /conduct also emits boot/steps/run-end."""
+    refused, spec = _load_spec_or_refuse(args.spec)
+    if refused is not None:
+        return refused
+    refused, resolved = _resolved_or_refuse(spec, args.spec)
+    if refused is not None:
+        return refused
+    if resolved.get("scenario") is None:
+        return _refuse("the cell spec declares no scenario (D2 open) — "
+                       "the walk cannot boot; INCONCLUSIVE")
+    max_steps = resolved.get("max_steps")
+    if args.max_steps is not None:
+        max_steps = args.max_steps
+    conductor = None
+    try:
+        try:
+            conductor = sc.orchestrate.Orchestrator(
+                resolved["scenario"], resolved["ledger"],
+                resolved["trail"], resolved["engine_spec"],
+                socket_dir=resolved.get("socket_dir"))
+        except sc.orchestrate.BootError as exc:
+            return _refuse("the walk refused to boot: %s" % exc)
+        world = sc.orchestrate._LiveWorld(conductor)
+        result = sc.navigate.walk(
+            conductor.scenario, world,
+            conductor.scenario["seed"]["ref"],
+            sources_dir=conductor.sources_dir,
+            session_lines=conductor._session_lines(),
+            max_steps=max_steps)
+        _emit(result)
+        return 0 if result.get("status") == "complete" else 1
+    finally:
+        if conductor is not None:
+            conductor.close()
+
+
+def cmd_config(args):
+    """C1 — wrap softconfig.load_soft_config (read-only).  One call;
+    absent file = the engine's declared defaults."""
+    report = sc.softconfig.load_soft_config(args.path)
+    _emit(report)
+    return 0 if report.get("status") in ("ok", "defaults") else 1
+
+
+def cmd_cost(args):
+    """C1 — wrap cost.spend_from_records; records read through the B0
+    LedgerLoader (the engine's reader), optional soft charges through
+    softconfig.budget_of (the engine's read path).  The wrapper holds
+    no charge literal and no ledger logic."""
+    try:
+        records = sc.ledger.LedgerLoader(args.ledger).load(
+            write_index=False).records
+    except Exception as exc:  # LedgerError/LedgerVerificationError family
+        return _refuse("the ledger %r cannot be read (%s) — the spend "
+                       "is INCONCLUSIVE, never guessed" % (args.ledger,
+                                                           exc))
+    if args.soft_config is not None:
+        soft = sc.softconfig.load_soft_config(args.soft_config)
+        if soft.get("status") not in ("ok", "defaults"):
+            return _refuse("the soft config is not readable (%s) — the "
+                           "charges stay the declared defaults, never "
+                           "a guessed value" % soft.get("reason"))
+        spend = sc.cost.spend_from_records(
+            records, args.mode,
+            charge_for=lambda mode, desk: sc.softconfig.budget_of(
+                soft, mode, desk))
+    else:
+        spend = sc.cost.spend_from_records(records, args.mode)
+    _emit({"status": "ok", "mode": args.mode, "spend": spend,
+           "reason": ("the declared spend of the completed fenced "
+                      "turns in mode %r — the engine's own number, "
+                      "wrapped for the report convention, never "
+                      "recomputed in the wrapper" % args.mode)})
+    return 0
+
+
+def cmd_states(args):
+    """C2 — the read side, through orchestrate.Orchestrator.read_states
+    (the only desk-facing command).  An absent socket reads
+    {"status":"absent"} honestly — never a fixture stand-in.  A spec
+    with no scenario cannot boot the conductor: INCONCLUSIVE with the
+    D2 reason, never a stand-in conductor."""
+    refused, spec = _load_spec_or_refuse(args.spec)
+    if refused is not None:
+        return refused
+    refused, resolved = _resolved_or_refuse(spec, args.spec)
+    if refused is not None:
+        return refused
+    if resolved.get("scenario") is None:
+        return _refuse("the cell spec declares no scenario (D2 open) — "
+                       "the conductor cannot boot, the state read is "
+                       "INCONCLUSIVE, never a stand-in")
+    conductor = None
+    try:
+        try:
+            conductor = sc.orchestrate.Orchestrator(
+                resolved["scenario"], resolved["ledger"],
+                resolved["trail"], resolved["engine_spec"],
+                socket_dir=resolved.get("socket_dir"))
+        except sc.orchestrate.BootError as exc:
+            return _refuse("the conductor refused to boot — the state "
+                           "read is INCONCLUSIVE: %s" % exc)
+        report = conductor.read_states()
+        _emit(report)
+        return 0 if report.get("status") == "observed" else 1
+    finally:
+        if conductor is not None:
+            conductor.close()
+
+
+_DESCENT_OPS = {
+    "path-between": {
+        "flags": (("--from", "from_address"), ("--to", "to_address")),
+        "call": lambda args: sc.path_between(args.from_address,
+                                             args.to_address),
+        "success": ("ok",),
+    },
+    "zoom-in": {
+        "flags": (("--address", "address"), ("--letter", "letter")),
+        "call": lambda args: sc.zoom_in(args.address, args.letter),
+        "success": ("ok",),
+    },
+    "zoom-out": {
+        "flags": (("--address", "address"),),
+        "call": lambda args: sc.zoom_out(args.address),
+        "success": ("ok",),
+    },
+    "validate-path": {
+        "flags": (("--path", "path"),),
+        "call": lambda args: sc.validate_signed_path(args.path),
+        "success": ("ok",),
+    },
+    "validate-word": {
+        "flags": (("--address", "address"),),
+        "call": lambda args: sc.validate_word(args.address),
+        "success": ("ok",),
+    },
+}
+
+
+def cmd_descent(args):
+    """C1 — the address grammar, one op per invocation, one engine call
+    each (zoom_in / zoom_out / path_between / validate_signed_path /
+    validate_word)."""
+    op = _DESCENT_OPS[args.op]
+    try:
+        report = op["call"](args)
+    except Exception as exc:  # the engine refused — fail closed
+        return _refuse("the address grammar refused: %s" % exc)
+    if not isinstance(report, dict) or "status" not in report:
+        # the zoom primitives return strings (the address itself)
+        report = {"status": "ok", "result": report,
+                  "reason": "the address grammar's result (B3, imported)"}
+    _emit(report)
+    return 0 if report.get("status") in op["success"] else 1
+
+
+def cmd_decode(args):
+    """C1/K3 — wrap decoder.decode: D1 filled symbol slots as
+    references, never text; the report carries corruption detections,
+    never an authenticity verdict."""
+    try:
+        report = sc.decoder.decode(
+            args.phase,
+            context=_read_json_arg(args.context, "the context"),
+            values=_read_json_arg(args.values, "the values"),
+            trail=_read_json_arg(args.trail, "the trail"),
+            lenses=_split_lenses(args.lenses),
+            claims=_read_json_arg(args.claims, "the claims"),
+            cell_address=args.cell or "",
+            inserted_answer=bool(args.inserted_answer))
+    except Exception as exc:  # DecoderError — fail closed
+        return _refuse("the decode refused: %s" % exc)
+    _emit(report)
+    return 0 if report.get("mark") == "mechanical" else 1
+
+
+def _split_lenses(value):
+    if not value:
+        return ()
+    return tuple(item for item in value.split(",") if item)
+
+
+def cmd_compile(args):
+    """C1/K2 — wrap compiler.emit: the §3.6 surface + jacket, written
+    RAW — byte-exact, never normalised (the encoding needle rides
+    untouched)."""
+    try:
+        text = sc.compiler.emit(
+            args.phase,
+            _read_json_arg(args.slots, "the slot texts"),
+            lens_ids=_split_lenses(args.lenses),
+            trail_report=_read_json_arg(args.trail, "the trail report"),
+            cell_address=args.cell or "",
+            include_layers=not args.surface_only)
+    except Exception as exc:  # DecoderError — fail closed
+        return _refuse("the compile refused: %s" % exc)
+    sys.stdout.write(text)
+    if not text.endswith("\n"):
+        sys.stdout.write("\n")
+    return 0
+
+
+def cmd_check(args):
+    """C1/K3 — wrap compiler.validate: the 48-item table + the
+    corruption verdict (L1 L2 L3 L4 V∅ only).  HC-1/HC-2 are
+    INCONCLUSIVE by design — a machine can never report a fully clean
+    artifact; exit 0 means PASS only.  A check the engine refuses to
+    run (a malformed artifact) is carried as an INCONCLUSIVE refusal —
+    never a crash, never clean."""
+    artifact = _read_json_arg(args.artifact, "the artifact")
+    cycle = _read_json_arg(args.cycle, "the cycle") if args.cycle \
+        is not None else None
+    try:
+        report = sc.compiler.validate(artifact, cycle=cycle)
+    except Exception as exc:  # the engine's own refusal — fail closed
+        return _refuse("the check refused: %s" % exc)
+    _emit(report)
+    return 0 if report.get("verdict") == "PASS" else 1
+
+
+def _serialize_report(report):
+    """The declared report serialization: JSON-safe, byte-exact for
+    every string — the read-trail report's ``raw`` field (the file's
+    own bytes, already on disk) is carried as its sha256 instead of
+    the bytes themselves (declared in SEAM_SURFACE.serialization;
+    never a content transformation)."""
+    out = dict(report)
+    if "raw" in out:
+        raw = out.pop("raw")
+        if isinstance(raw, str):
+            raw = raw.encode("utf-8")
+        out["raw_sha256"] = hashlib.sha256(raw or b"").hexdigest()
+    return out
+
+
+def cmd_trail(args):
+    """C1 — the human's window: trail.read_trail (default) or the
+    dependency audit (--audit: B0 LedgerLoader + audit_payload_chains).
+    One engine call per invocation."""
+    if args.audit:
+        try:
+            records = sc.ledger.LedgerLoader(args.ledger).load(
+                write_index=False).records
+        except Exception as exc:
+            return _refuse("the ledger %r cannot be read (%s) — the "
+                           "audit is INCONCLUSIVE, never guessed"
+                           % (args.ledger, exc))
+        report = sc.audit_payload_chains(records)
+    else:
+        report = sc.read_trail(args.trail)
+    _emit(_serialize_report(report))
+    return 0 if report.get("status", "ok") == "ok" else 1
+
+
+# ---------------------------------------------------------------------------
+# Argument wiring.
+# ---------------------------------------------------------------------------
+
+def build_parser():
+    parser = argparse.ArgumentParser(
+        prog="cellctl",
+        description=("the seam CLI: one subcommand per engine module, "
+                     "one engine call each (candidate names — D4, his "
+                     "to name).  No socket code, no prompt assembly, "
+                     "no record-writing in the wrapper (C1); no write "
+                     "verb exposed as a command (C2); the run lock is "
+                     "the wrapper's (C5); the engine is sha-pinned "
+                     "(C7).  Exit 0 = the declared success status; "
+                     "1 = any other (INCONCLUSIVE never reads clean)."))
+    sub = parser.add_subparsers(dest="command", required=True)
+
+    p = sub.add_parser("word", help="decode a scenario (one call: "
+                        "load_scenario_file / decode_scenario)")
+    source_group = p.add_mutually_exclusive_group(required=True)
+    source_group.add_argument("--scenario", help="the scenario file path")
+    source_group.add_argument("--stdin", action="store_true",
+                              help="read the scenario bytes from stdin")
+    source_group.add_argument("--json",
+                              help="the scenario as inline JSON")
+    p.set_defaults(func=cmd_word)
+
+    p = sub.add_parser("plan", help="plan a DECODED scenario (one "
+                       "call: navigate.plan_walk — pure)")
+    p.add_argument("scenario", help="a JSON file holding the decoded "
+                   "scenario (word.decode_scenario's \"scenario\")")
+    p.set_defaults(func=cmd_plan)
+
+    p = sub.add_parser("materialize", help="emit a decoded word's "
+                       "cells (one call: materialize.materialize; "
+                       "--verify: read_materialized)")
+    p.add_argument("scenario", help="a JSON file holding the decoded "
+                   "scenario")
+    p.add_argument("--out", required=True, help="the output directory")
+    p.add_argument("--visits", help="a plan JSON (navigate.plan_walk "
+                   "report) covering the loop-expanded visits")
+    p.add_argument("--verify", action="store_true",
+                   help="read the materialized word back instead of "
+                        "emitting (read_materialized)")
+    p.set_defaults(func=cmd_materialize)
+
+    p = sub.add_parser("conduct", help="the composite run (a binding "
+                       "of the engine's orchestrate.main) — or "
+                       "--plan-only (C3: decode + plan, byte-identical "
+                       "to the direct calls)")
+    p.add_argument("--spec", help="the live cell spec (spec.json)")
+    p.add_argument("--max-steps", type=int, help="the caller's step "
+                   "budget (overrides the spec's)")
+    p.add_argument("--plan-only", action="store_true",
+                   help="decode + plan only — no run, no lock (C3)")
+    p.add_argument("--scenario", help="with --plan-only: the scenario "
+                   "file to decode + plan")
+    p.set_defaults(func=cmd_conduct)
+
+    p = sub.add_parser("walk", help="the raw sign-walk over the live "
+                       "wiring (one call: navigate.walk)")
+    p.add_argument("--spec", required=True, help="the live cell spec")
+    p.add_argument("--max-steps", type=int)
+    p.set_defaults(func=cmd_walk)
+
+    p = sub.add_parser("config", help="read the soft config (one "
+                       "call: softconfig.load_soft_config — read-only)")
+    p.add_argument("--path", help="the soft.json path (absent = the "
+                   "engine's declared defaults)")
+    p.set_defaults(func=cmd_config)
+
+    p = sub.add_parser("cost", help="the declared spend (one call: "
+                       "cost.spend_from_records)")
+    p.add_argument("--ledger", required=True)
+    p.add_argument("--mode", required=True)
+    p.add_argument("--soft-config", help="optional soft.json for the "
+                   "per-desk charges (softconfig.budget_of)")
+    p.set_defaults(func=cmd_cost)
+
+    p = sub.add_parser("states", help="the desks' real states, "
+                       "read-only (one call: Orchestrator.read_states; "
+                       "absent socket reads absent — C2)")
+    p.add_argument("--spec", required=True, help="the live cell spec")
+    p.set_defaults(func=cmd_states)
+
+    p = sub.add_parser("descent", help="the address grammar — one op "
+                       "per invocation, one engine call")
+    p.add_argument("op", choices=sorted(_DESCENT_OPS))
+    p.add_argument("--from", dest="from_address")
+    p.add_argument("--to", dest="to_address")
+    p.add_argument("--address")
+    p.add_argument("--letter")
+    p.add_argument("--path", dest="path")
+    p.set_defaults(func=cmd_descent)
+
+    p = sub.add_parser("decode", help="decode one phase (one call: "
+                       "decoder.decode — slots as references, never "
+                       "text; never an authenticity verdict)")
+    p.add_argument("--phase", required=True, choices=list("SGQPV"))
+    p.add_argument("--context")
+    p.add_argument("--values")
+    p.add_argument("--trail")
+    p.add_argument("--lenses")
+    p.add_argument("--claims")
+    p.add_argument("--cell")
+    p.add_argument("--inserted-answer", action="store_true")
+    p.set_defaults(func=cmd_decode)
+
+    p = sub.add_parser("compile", help="emit a phase's §3.6 surface "
+                       "(one call: compiler.emit — RAW bytes, K2)")
+    p.add_argument("--phase", required=True, choices=list("SGQPV"))
+    p.add_argument("--slots", required=True)
+    p.add_argument("--lenses")
+    p.add_argument("--trail")
+    p.add_argument("--cell")
+    p.add_argument("--surface-only", action="store_true")
+    p.set_defaults(func=cmd_compile)
+
+    p = sub.add_parser("check", help="the 48-item validation of a "
+                       "produced surface (one call: compiler.validate — "
+                       "HC-1/HC-2 INCONCLUSIVE by design)")
+    p.add_argument("artifact")
+    p.add_argument("--cycle")
+    p.set_defaults(func=cmd_check)
+
+    p = sub.add_parser("trail", help="the readable trail (one call: "
+                       "read_trail; --audit: audit_payload_chains)")
+    p.add_argument("--ledger", required=True)
+    p.add_argument("--trail", required=True)
+    p.add_argument("--audit", action="store_true")
+    p.set_defaults(func=cmd_trail)
+
+    return parser
+
+
+def main(argv=None):
+    parser = build_parser()
+    args = parser.parse_args(argv)
+    return args.func(args)
+
+
+if __name__ == "__main__":
+    sys.exit(main())

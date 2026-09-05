@@ -1,0 +1,29 @@
+{
+  "contract_version": "bindings-fixture-1",
+  "note": "the fixture census — the mirror of the EXTENDED seam manifest (the seam-declaration extension applied): every fixture executable declared, the re-pointed cell-attest declared as a seam importer, the pinned module names the seam's own list. Paths are resolved by the selftest against the scratch cell root.",
+  "entry_points": [
+    {"path": "plugin/bin/_cell_api.py",
+     "role": "the plugin's shared api module (fixture)"},
+    {"path": "plugin/bin/cell-attest",
+     "role": "human-TTY attestation act (fixture)"},
+    {"path": "plugin/bin/cell-begin",
+     "role": "free-corner gesture (fixture)"},
+    {"path": "plugin/bin/cell-zoom",
+     "role": "zoom gesture (fixture)"},
+    {"path": "plugin/bin/cell-on-desk-state",
+     "role": "desk state read (fixture)"},
+    {"path": "plugin/bin/cell-podium",
+     "role": "the podium's read-only trail renderer (fixture)"}
+  ],
+  "import_allowed": [
+    "plugin/bin/cell-attest"
+  ],
+  "pinned_module_names": [
+    "word", "navigate", "materialize", "orchestrate",
+    "surface_contract", "cost", "softconfig", "trail", "run",
+    "descent", "instrument", "driver", "walker", "dialects", "lens",
+    "grammar", "block", "arrangement", "install", "conformance",
+    "step", "surface", "desk", "desk_server", "decoder", "compiler",
+    "corruption", "codex", "fractal_ledger"
+  ]
+}

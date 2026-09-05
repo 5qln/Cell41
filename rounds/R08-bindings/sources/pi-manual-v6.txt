@@ -1,0 +1,1825 @@
+# pi-agent-customization-guide-6 (text extraction)
+# source: held manual 'Customizing Pi — A Working Manual for Herdr Fleets'
+# pi v0.84.x · herdr v0.8.x · hermes v0.20.x · updated 2026-08-31 · 9 sections
+
+Customizing Pi — A Working Manual for Herdr Fleets
+
+π_ customizing pi
+ 
+working manual · herdr edition
+
+Start here
+ 01 Overview
+ 02 Install & Auth
+ 
+Customize pi
+ 03 Configuration Files
+ 04 Skills
+ 05 Tools & Extensions
+ 
+Orchestrate
+ 06 Herdr Orchestration
+ 07 Herdr Look & Feel
+ 08 Multi-Agent Patterns
+ 
+Reference
+ 09 Cheat Sheet & Fixes
+
+ ● pi v0.84.x · herdr v0.8.x · hermes v0.20.x
+
+ self-contained · works offline
+
+ updated 2026-08-31
+
+ π_ customizing pi
+ ☰ toc
+
+Working manual · pi × herdr
+
+### Customizing the pi coding agent
+for multi-agent orchestration in Herdr
+
+ A practical, copy-paste-driven manual for shaping pi — the minimal, self-extensible coding agent — into a fleet member you can orchestrate with Herdr, the agent runtime that keeps real terminals alive. It covers the configuration file system, project instructions, skills, custom tools and extensions, and the exact CLI recipes used to spawn, prompt, wait on, and harvest worker agents.
+
+ audience: mixed team, from zero
+ 9 sections · 40+ copy-paste blocks
+ pi v0.84 · herdr v0.8.2 · tested 2026-08
+
+01
+
+### Overview — the pieces and how they stack
+
+Before touching a single file, it helps to know exactly what you are customizing and where each knob lives. Pi is deliberately small; Herdr deliberately stays out of pi's way. The customization story is about layering the right instructions and capabilities onto a tiny core.
+
+### ##What pi is
+
+ Pi (pi.dev, npm @earendil-works/pi-coding-agent) is a minimal terminal coding harness built around one philosophy: a small, predictable core plus clean extension points. Out of the box the model gets exactly four tools — read, write, edit, and bash — with read-only helpers (grep, find, ls, powershell) available as options. Everything else you want pi to do is added declaratively through settings files, project instructions, and skills, or programmatically through TypeScript extensions that can register tools, intercept events, and add commands.
+
+ This design is what makes pi a good fleet citizen. Because its behavior is almost entirely defined by plain files in predictable locations, you can give every worker agent in a Herdr fleet a different personality, toolset, and skill library — without forking anything or patching a binary. An orchestrator and ten workers can share one install of pi and behave like eleven differently-configured agents. And if pi isn't the coordinator you want, the same runtime accepts a different one: §08 Pattern C shows Hermes Agent (Nous Research) driving the identical fleet surface.
+
+### ##What Herdr adds
+
+ Herdr (herdr.dev) is a runtime for coding agents: a background server that owns real PTY-backed terminals organized as workspaces → tabs → panes. Close the lid, drop the network, or reboot — agents keep working and sessions come back. Herdr recognizes which panes contain agents, classifies each as working blocked idle or done, rolls those states up in a sidebar, and exposes the same surface it gives humans — a CLI and a socket API — to scripts and to agents themselves. One Rust binary, no Electron, runs on macOS, Linux, and Windows.
+
+YOU / ORCHESTRATOR
+ │
+ ▼
+┌─────────────────────────── HERDR SERVER ───────────────────────────┐
+│ workspace: api workspace: web workspace: ops │
+│ ┌─────────┐ ┌─────────┐ ┌─────────┐ ┌─────────┐ │
+│ │ pane p1 │ │ pane p2 │ │ pane p1 │ ... │ pane p1 │ │
+│ │ pi (orch)│ │ pi (wkr) │ │ codex │ │ claude │ │
+│ │ ●working │ │ ○idle │ │ ◉blocked │ │ ○idle │ │
+│ └─────────┘ └─────────┘ └─────────┘ └─────────┘ │
+└────────────────────────────────────────────────────────────────────┘
+ ▲ ▲ ▲
+ │ herdr agent start / prompt / wait / read │
+ └────────────┴──── one CLI + socket surface for humans, scripts ────┘
+ and agents alike (orchestrator seat: pi, Hermes, or a script)
+
+### ##The customization stack
+
+ Every knob in this manual fits into one of six layers. They are listed in the order you should learn — and roughly the order pi loads them at startup. Master the first three and you have a well-behaved fleet; add layers four and five when you need programmatic power, and layer six when the fleet needs a look of its own.
+
+ | 
+ | Layer | Mechanism | Defined in | Use it for
+
+ | 1 · Settings | JSON config, project overrides global | ~/.pi/agent/settings.json, .pi/settings.json | Model defaults, tool allowlists, sessions, retries, resource discovery
+ 
+ | 2 · Instructions | Markdown context files loaded at startup | AGENTS.md (global, parents, cwd) + AGENTS.override.md | House rules, workflow conventions, guardrails per repo
+ 
+ | 3 · Skills | On-demand capability packages (SKILL.md + assets) | ~/.pi/agent/skills/, .pi/skills/, packages | Specialized workflows: deploy, review, PDF tooling, Herdr driving
+ 
+ | 4 · Tools & extensions | TypeScript modules, event hooks, custom tools | ~/.pi/agent/extensions/, .pi/extensions/, npm/git packages | Custom tools, permission gates, integrations — e.g. Herdr state reporting
+ 
+ | 5 · Orchestration | Herdr CLI/socket + pi-herdr extension — or Hermes Agent + the Herdr skill | Herdr config + fleet scripts + skills | Spawn, prompt, wait, harvest across a fleet of agents
+ 
+ | 6 · Presentation | Herdr config.toml — [theme], [ui], [ui.toast], [keys] + rename/metadata CLI | ~/.config/herdr/config.toml (§07) | Themes, colors, tab bar & window title, sidebar layouts, notifications, keybindings — the GUI the fleet lives in
+
+◈ How to read this manual
+ 
+Sections 02–05 customize the agent and can be applied one repo at a time. Sections 06–08 turn those customized agents into a fleet, and §07 styles the HUD it runs in — down to each session's name and live status text. Every code block is meant to be copied verbatim and adjusted; file paths in headings are the exact paths pi or Herdr reads on disk.
+
+### ##Mental model: one binary, many agents
+
+ A subtle point that pays off later: Herdr's --kind pi launches the same pi executable every time. Two workers differ only because their environment differs — the working directory's .pi/ folder, project AGENTS.md, per-project skills, and CLI flags passed after --. When you design your fleet, think in terms of one shared pi install, many project-scoped configurations. That keeps upgrades to a single npm i -g and makes behavior auditable: to know what a worker will do, you only have to read the files in its working directory.
+
+02
+
+### Install & authenticate pi and Herdr
+
+Ten minutes of setup. Install pi globally, authenticate one provider, install Herdr, and wire the official pi↔Herdr integration so Herdr gets precise lifecycle states instead of guessing from screen scraping.
+
+### ##Install pi
+
+Pi is distributed as an npm package. The --ignore-scripts flag is the documented install path — pi does not need lifecycle scripts, and skipping them hardens your supply chain:
+
+bashcopy
+ 
+npm install -g --ignore-scripts @earendil-works/pi-coding-agent
+pi --version # verify, e.g. 0.84.3
+
+# from anywhere with node/bun/pnpm:
+bun uninstall -g @earendil-works/pi-coding-agent # (uninstall works the same way)
+
+### ##Authenticate a model provider
+
+ Pi speaks to every major provider through one of two doors: subscription login (OAuth, stored in ~/.pi/agent/auth.json, auto-refreshed) or API keys (environment variables or the same auth file). Workers spawned later inherit whatever you configure here, so do this once on the machine that hosts your fleet.
+
+option 1 subscription login
+ 
+Interactive, per-account, no keys in dotfiles:
+
+in picopy
+
+/login # then pick a provider:
+# Claude Pro/Max · ChatGPT Plus/Pro (Codex)
+# GitHub Copilot · xAI (Grok/X)
+# OpenRouter · Radius
+ 
+Tokens land in ~/.pi/agent/auth.json. Use /logout to clear.
+
+option 2 API key via env
+ 
+Best for headless boxes and CI fleets:
+
+bashcopy
+
+export ANTHROPIC_API_KEY=sk-ant-...
+export OPENAI_API_KEY=sk-...
+pi
+
+# or store keys durably instead:
+# /login → pick an API-key provider
+# → written to ~/.pi/agent/auth.json
+ 
+Full provider matrix (incl. Bedrock, Vertex, Azure) lives in pi's Providers doc.
+
+First session sanity check — pi should summarize the repo you point it at:
+
+bashcopy
+ 
+cd /path/to/project
+pi
+# then type: Summarize this repository and tell me how to run its checks.
+
+### ##Install Herdr
+
+bashcopy
+ 
+curl -fsSL https://herdr.dev/install.sh | sh # macOS · Linux
+# or: brew install herdr · mise use -g herdr
+# windows (powershell):
+irm https://herdr.dev/install.ps1 | iex
+
+herdr --version # e.g. herdr 0.8.2
+herdr status # "server: not running" until first launch
+herdr # launch the workspace (starts the local server)
+
+ Herdr works with zero configuration. The first run shows onboarding; detach from a session with ctrl+b q and everything — panes, agents, running processes — keeps living on the server. Reattach later with plain herdr from any terminal, or over SSH from anywhere.
+
+▲ macOS: never run herdr under brew services
+ 
+A launchd-managed herdr server inherits macOS's minimal PATH (/usr/bin:/bin:…) with no node on it. Spawned pi is a #!/usr/bin/env node script, so panes die silently after ~2 seconds. Always start herdr from your terminal so the server inherits your full shell PATH — or pass absolute agent paths and inject PATH via the env field of spawn tools.
+
+### ##Install the official pi ↔ Herdr integration
+
+ Herdr detects pi out of the box from screen contents, but the official integration upgrades pi to a lifecycle authority: pi itself reports idle / working / blocked through lifecycle hooks, and (from integration version 2) exposes its native session for automatic restore after a Herdr restart. Screen-scrape guessing stops; you get exact states. Install is one command:
+
+bashcopy
+ 
+herdr integration install pi
+herdr integration status # verify: pi integration v2+
+
+# what it did: wrote the bundled extension to
+# ~/.pi/agent/extensions/herdr-agent-state.ts
+# (respects $PI_CODING_AGENT_DIR if set)
+
+◈ Why this matters for fleets
+ 
+Orchestration quality is bounded by state quality. With the integration, herdr agent wait reviewer --until done resolves the instant pi says it is done, not when a screen matcher happens to notice. The blocked state also becomes trustworthy — which is what lets an orchestrator route "needs human" cases instead of burning tokens in retry loops.
+
+### ##Install the Herdr agent skill into pi
+
+ Herdr ships a maintained skill file (skills/herdr/SKILL.md) that teaches any agent how to drive Herdr from inside a Herdr pane — inspect workspaces, split panes, run commands, wait on servers, and start helper agents. Installing it gives your orchestrator a standardized, upstream-maintained instruction set:
+
+bashcopy
+ 
+npx skills add herdrdev/herdr --skill herdr -g # -g = global for supported agents
+# or print the copy bundled with your binary:
+herdr --skill
+# source of truth:
+# github.com/herdrdev/herdr/blob/v0.8.2/skills/herdr/SKILL.md
+
+The skill carries one built-in guardrail: if HERDR_ENV=1 is not set, the agent must stop and say it is not inside a Herdr pane — preventing an agent from trying to control a session it does not own. For pi specifically, either this skill or the pi-herdr extension from section 07 gives the model the same command vocabulary; using both is fine and common.
+
+### ##Verification checklist
+
+check 1
+
+pi runs and answers
+pi -p "reply with OK" in a test dir prints a response without provider errors.
+ 
+check 2
+
+herdr server is up
+herdr status shows server: running plus the socket path.
+ 
+check 3
+
+integration is active
+herdr integration status lists pi with version ≥ 2; start pi in a pane and watch its state change idle → working on a prompt.
+ 
+check 4
+
+fleet env is visible inside a pane
+Inside a herdr pane: echo $HERDR_ENV $HERDR_PANE_ID prints 1 and a pane id like w1:p2.
+
+03
+
+### Configuration files — the complete map
+
+Pi's entire behavior profile is files. This section maps every file it reads, dissects settings.json key by key, explains project-over-global merge semantics, project trust, and the AGENTS.md instruction layer. Master this section and any agent's behavior becomes auditable by reading files.
+
+### ##The file map
+
+Everything pi reads and writes lives in two scopes: the agent directory (global, follows you across projects) and the project .pi/ directory (per repo, trusted opt-in). Where a fleet is concerned, the global scope defines your baseline and the project scope defines each worker's specialization:
+
+~/.pi/agent/ ← global agent directory
+├── settings.json global settings (model, tools, resources)
+├── trust.json saved per-project trust decisions
+├── auth.json provider tokens / API keys (auto-refresh)
+├── AGENTS.md global instructions, every session
+├── skills/ global skill packages
+├── extensions/ global TypeScript extensions
+│ └── herdr-agent-state.ts ← written by `herdr integration install pi`
+├── prompts/ global prompt templates (*.md)
+├── themes/ custom themes
+├── npm/ user-scoped pi packages
+├── sessions/ default session store
+└── models-store.json cached provider model catalogs
+
+your-project/
+├── AGENTS.md project instructions (or CLAUDE.md)
+└── .pi/ ← project scope, loads only when trusted
+ ├── settings.json project settings — override global
+ ├── skills/ project skills
+ ├── extensions/ project extensions
+ ├── prompts/ project prompt templates
+ ├── sessions/ per-project session store (via sessionDir)
+ └── npm/ project-scoped pi packages
+
+Two universal rules make this map predictable. First, paths in ~/.pi/agent/settings.json resolve relative to ~/.pi/agent, and paths in .pi/settings.json resolve relative to .pi — absolute paths and ~ work in both. Second, project always wins over global, with nested objects merged key by key rather than replaced (details below).
+
+### ##settings.json — global baseline
+
+ Edit directly, or use /settings for common options. Save a startup model with /model + ctrl+s and a startup thinking level with /thinking + ctrl+s; both writes land in this file. Here is a production-grade global file tuned for fleet hosts — generous retries for long-running orchestration, a conservative compaction policy, and explicit model cycling:
+
+json~/.pi/agent/settings.jsoncopy
+ 
+{
+ // ── model & thinking ───────────────────────────────
+ "defaultProvider": "anthropic",
+ "defaultModel": "claude-sonnet-4-20250514",
+ "defaultThinkingLevel": "medium", // off|minimal|low|medium|high|xhigh|max
+ "modelThinkingLevels": {
+ "anthropic/claude-sonnet-4-20250514": "high"
+ },
+ "enabledModels": ["claude-*", "gpt-4o", "gemini-2*"], // Ctrl+P cycling
+
+ // ── tools ──────────────────────────────────────────
+ "defaultTools": ["read", "bash", "edit", "write", "grep"],
+
+ // ── resilience (good defaults for fleets) ─────────
+ "retry": {
+ "enabled": true,
+ "maxRetries": 3,
+ "baseDelayMs": 2000,
+ "provider": { "timeoutMs": 3600000, "maxRetries": 0, "maxRetryDelayMs": 60000 }
+ },
+ "compaction": {
+ "enabled": true,
+ "reserveTokens": 16384,
+ "keepRecentTokens": 20000
+ },
+
+ // ── sessions ───────────────────────────────────────
+ "sessionDir": ".pi/sessions", // relative → project .pi dir
+
+ // ── behavior & trust ───────────────────────────────
+ "theme": "dark",
+ "quietStartup": true,
+ "enableSkillCommands": true,
+ "defaultProjectTrust": "ask", // ask|always|never (global only)
+
+ // ── resource discovery ─────────────────────────────
+ "packages": ["pi-skills"],
+ "extensions": [],
+ "skills": ["~/.claude/skills", "~/.codex/skills"], // reuse other harnesses' skills
+ "prompts": [],
+ "themes": [],
+
+ // ── message delivery & steering ────────────────────
+ "steeringMode": "one-at-a-time", // or "all"
+ "followUpMode": "one-at-a-time"
+}
+
+### Key groups reference
+
+The most operationally relevant settings, grouped by what they control. Omitted keys simply use pi's built-in defaults, so a minimal file is legitimate:
+
+ | 
+ | Group | Key | Type / default | What it does
+
+ | Model & thinking | defaultProvider / defaultModel | string | Startup provider and model id (e.g. "anthropic", "claude-sonnet-4-…")
+ 
+ | defaultThinkingLevel | string | off · minimal · low · medium · high · xhigh · max
+ 
+ | modelThinkingLevels | object | Per-model startup levels keyed "provider/modelId"
+ 
+ | enabledModels | string[] | Glob patterns for ctrl+p model cycling, e.g. "claude-*"
+ 
+ | Tools | defaultTools | string[] | Built-ins enabled at startup: read · bash · powershell · edit · write · grep · find · ls. Empty array = none (custom tools still load)
+ 
+ | CLI interplay | --tools strict allowlist · --no-tools all off · --exclude-tools filter — override the setting per run
+ 
+ | Resilience | retry.enabled / maxRetries / baseDelayMs | bool / 3 / 2000 | Agent-level exponential backoff on transient errors (2s → 4s → 8s)
+ 
+ | retry.provider.timeoutMs | number | SDK request timeout; raise for long agent turns
+ 
+ | compaction.* | bool / numbers | Auto-compaction of long sessions: reserveTokens 16384, keepRecentTokens 20000
+ 
+ | Sessions | sessionDir | string | Where session files go. Precedence: --session-dir → PI_CODING_AGENT_SESSION_DIR → setting. Fleet tip: keep it in-repo under .pi/sessions
+ 
+ | Shell | shellPath | string | Custom shell (e.g. "C:/Program Files/Git/bin/bash.exe" on Windows)
+ 
+ | shellCommandPrefix | string | Prefix prepended to every bash command (aliases, env setup)
+ 
+ | Resources | packages | array | npm/git pi packages, string form or filtered object form (below)
+ 
+ | extensions / skills / prompts / themes | string[] | Extra load paths; globs allowed, !pattern excludes
+ 
+ | enableSkillCommands | bool · true | Register each skill as a /skill:name command
+ 
+ | defaultProjectTrust | string · "ask" | Fallback trust for non-interactive runs: ask (ignore project resources) · always · never. Global-only key
+ 
+ | steeringMode / followUpMode | string | How queued steering/follow-up messages are delivered: "all" or "one-at-a-time"
+ 
+ | Images | images.blockImages | bool · false | Hard-block all image input — handy for token-frugal workers
+
+### ##Project overrides — merge semantics
+
+ Project settings (.pi/settings.json) override the global file, and nested objects merge key-by-key rather than replacing wholesale. This is the core mechanism for specializing workers: put shared policy in the global file, and let each repo's .pi/ add or tune only what differs. The example below shows exactly how a project tightens the global compaction budget while inheriting everything else:
+
+jsonglobal → project → effectivecopy
+ 
+// ~/.pi/agent/settings.json (global)
+{
+ "theme": "dark",
+ "compaction": { "enabled": true, "reserveTokens": 16384 }
+}
+
+// .pi/settings.json (project)
+{
+ "compaction": { "reserveTokens": 8192 }
+}
+
+// ── effective result ─────────────────────────────
+// { "theme": "dark",
+// "compaction": { "enabled": true, "reserveTokens": 8192 } }
+
+One important exception: array-valued settings like defaultTools are replaced, not concatenated — a project defaultTools replaces the global array outright. When you want "global baseline plus extras," restate the full list in the project file. A minimal, high-signal project file for a worker repo looks like this:
+
+json.pi/settings.json — worker specializationcopy
+ 
+{
+ "defaultModel": "claude-haiku-...", // cheaper model for this repo's workers
+ "defaultThinkingLevel": "low",
+ "defaultTools": ["read", "grep", "edit", "bash"], // no write: reviewer worker
+ "skills": ["./skills"], // repo-local skills dir
+ "sessionDir": ".pi/sessions"
+}
+
+### ##Project trust — who may load project config
+
+ Because .pi/settings.json, project skills, and project extensions can execute code, pi gates them behind a trust decision per folder. Interactively, pi asks before trusting a folder that has project-local settings, resources, or .agents/skills, and stores the answer in ~/.pi/agent/trust.json (use /trust to save a decision covering the immediate parent folder too; restart pi or run /reload afterwards).
+
+ Non-interactive modes — -p, --mode json, --mode rpc — never prompt. Without a saved decision they fall back to defaultProjectTrust from global settings: ask (the default) means project resources are ignored for that run, always trusts them, never refuses them. --approve / -a and --no-approve / -na override trust for a single run. This single paragraph explains most "why didn't my project settings load in the fleet?" mysteries:
+
+bashcopy
+ 
+# headless run with project resources, two equivalent forms:
+pi -p --approve "run the test suite and fix failures"
+pi --mode rpc -a # e.g. launched by herdr pane run
+
+# or make the decision once, for all future runs:
+pi /trust # interactive: saves to ~/.pi/agent/trust.json
+
+# or set the fleet-wide fallback in global settings:
+# "defaultProjectTrust": "always" ← only on machines you control
+
+▲ Fleet rule of thumb
+ 
+On a dedicated orchestration box where every repo is yours, "defaultProjectTrust": "always" removes a whole class of silent misconfiguration. On shared machines, keep ask and pre-seed trust.json with the repo paths your fleet will run in — trust decisions are per-folder and inherit from parent folders.
+
+### ##AGENTS.md — the instruction layer
+
+ Instructions are plain Markdown files pi loads into context at startup. The lookup is layered and deterministic: ~/.pi/agent/AGENTS.md (global) first, then AGENTS.md or CLAUDE.md from parent directories down to the current one. If a directory contains AGENTS.override.md, pi loads it instead of that directory's AGENTS.md / CLAUDE.md — the supported way to give one checkout a completely different operating manual. After editing any context file, restart pi or run /reload. The exact per-directory candidate order is AGENTS.override.md → AGENTS.md → AGENTS.MD → CLAUDE.md → CLAUDE.MD (first existing file wins; case variants included), the stack runs outermost directory → cwd, and one wrinkle matters for worktree fleets: a linked git worktree's own AGENTS.md shadows the main repo's copy at the same logical scope, so the two are never both loaded.
+
+markdownAGENTS.md — project instructionscopy
+ 
+# Project Instructions
+
+## Workflow
+- Run `npm run check` after every code change.
+- Never run production migrations locally.
+- Keep responses concise; state what you changed and why.
+
+## Guardrails
+- Do not edit `.env*` or anything under `infra/`.
+- If a task would touch more than 10 files, propose a plan first.
+
+## Fleet context
+- You may be running inside a Herdr pane. If `HERDR_ENV=1`,
+ report blockers by asking the user — a human watches the sidebar.
+
+◈ Global vs project split
+ 
+Keep universal conventions (tone, safety, commit message style) in ~/.pi/agent/AGENTS.md so every worker in every repo inherits them, and keep repo-specific facts (build commands, test suites, danger zones) in the project AGENTS.md. Resist the urge to paste everything globally — instruction bloat taxes every session's context window.
+
+### ##SYSTEM.md & APPEND_SYSTEM.md — swap or extend the system prompt
+
+Two files control the system prompt itself — a different axis from AGENTS.md context. SYSTEM.md replaces pi's built-in system prompt entirely; APPEND_SYSTEM.md appends to whatever prompt is active. Both resolve with the same precedence: a trusted project's .pi/SYSTEM.md beats the global ~/.pi/agent/SYSTEM.md (an untrusted project never loads its copy), and identically for the append file. For one-off runs, --system-prompt and --append-system-prompt flags do the same job from the command line — which is how an orchestrator can spawn workers with a generated charter without touching any repo:
+
+bashsystem-prompt files + a spawned workercopy
+ 
+# ── where the files live ─────────────────────────────────────
+# .pi/SYSTEM.md project — replaces the built-in prompt
+# ~/.pi/agent/SYSTEM.md global fallback (project wins if trusted)
+# .pi/APPEND_SYSTEM.md project — appended to the active prompt
+# ~/.pi/agent/APPEND_SYSTEM.md global fallback, same precedence rule
+
+# ── one-shot charter without touching the repo ───────────────
+herdr agent start fixer --kind pi --pane "$pane" -- \
+ --append-system-prompt "You are a test-fixer. Touch only *_test.ts.\nReport PASS/FAIL per file and stop."
+
+It helps to know precisely what composes a worker's behavior at startup. The resolved stack, in order: the built-in system prompt (or SYSTEM.md), then APPEND_SYSTEM.md, then the AGENTS.md chain, then skill and tool snippets injected by extensions. The runtime triple — model, thinking level, tools — works differently: settings.json only stores startup defaults (defaultProvider, defaultModel, defaultThinkingLevel, defaultTools), and each launch can override them with --model (accepts provider/id and an optional :thinking suffix), --thinking, or --tools / --exclude-tools. There is no separate per-worker "materializer" config file — if a plan or tooling assumes one, it's inventing a layer. Per-worker differentiation is exactly one of: a project .pi/ directory + AGENTS.md, or flags after -- in herdr agent start.
+
+ | 
+ | Layer (resolved in this order) | Source
+
+ | System prompt | Built-in, or .pi/SYSTEM.md / ~/.pi/agent/SYSTEM.md (project wins when trusted) — replaces
+ 
+ | Appended prompt | .pi/APPEND_SYSTEM.md / ~/.pi/agent/APPEND_SYSTEM.md, plus --append-system-prompt
+ 
+ | Instructions | AGENTS.md chain: global → ancestors → cwd (candidate order above)
+ 
+ | Capabilities | Skills + each tool's promptSnippet / promptGuidelines (§05)
+ 
+ | Model · thinking · tools | default* settings keys, overridden per launch by --model / --thinking / --tools
+
+04
+
+### Skills — on-demand capability packages
+
+Skills are how you teach pi a specialized workflow without inflating every session. A skill is a directory with a SKILL.md; only its name and description sit in the system prompt, and the full instructions load on demand when the task matches. Pi implements the cross-harness Agent Skills standard, so skills written for Claude Code or Codex work here too.
+
+### ##How discovery works
+
+At startup pi scans skill locations and extracts names and descriptions only — this is progressive disclosure, and it is why a large skill library costs almost no context. When a task matches a description, the agent loads the full SKILL.md with its read tool and follows the instructions, referencing bundled scripts by relative path.
+
+ | 
+ | Location | Scope | Notes
+
+ | ~/.pi/agent/skills/ | Global | Root .md files also discovered as individual skills
+ 
+ | ~/.agents/skills/ | Global (shared) | Cross-harness shared dir; root .md ignored, nested frontmatter .md found
+ 
+ | .pi/skills/ | Project | Loads only after the project is trusted (§03)
+ 
+ | .agents/skills/ | Project (shared) | In cwd and ancestor dirs up to the git repo root
+ 
+ | packages → skills/ dirs | Shipped | Installed via pi install npm:… / git:…
+ 
+ | skills settings array | Custom paths | Files or dirs, globs + !pattern excludes (see §03)
+ 
+ | --skill <path> | CLI | Repeatable, additive — even with --no-skills
+
+Disable automatic discovery with --no-skills (explicit --skill paths still load). Name collisions warn and keep the first skill found. Reusing skills from other harnesses is one settings line — worth repeating from §03 because it is the cheapest way to bootstrap a fleet's library:
+
+json~/.pi/agent/settings.jsoncopy
+ 
+{
+ "skills": ["~/.claude/skills", "~/.codex/skills"]
+}
+
+### ##Anatomy of a skill
+
+A skill directory has exactly one required file. Everything else is freeform — scripts, references, templates — all addressed with relative paths from the skill root:
+
+deploy-check/
+├── SKILL.md required: frontmatter + instructions
+├── scripts/
+│ └── preflight.sh helper the model executes via bash
+├── references/
+│ └── rollout.md deep detail, loaded only when needed
+└── assets/
+ └── template.json
+
+markdowndeploy-check/SKILL.mdcopy
+ 
+---
+name: deploy-check
+description: Runs pre-deployment checks (build, lint, tests, migration dry-run)
+ and reports a go/no-go verdict. Use when asked to deploy, release, or ship.
+allowed-tools: bash read
+---
+
+# Deploy Check
+
+## Preflight
+Run once before first use:
+```bash
+cd /path/to/this/skill && npm install
+```
+
+## Procedure
+1. Run `./scripts/preflight.sh <env>` and read its output.
+2. If any step fails, stop and report the failing step — do not improvise fixes
+ unless explicitly asked.
+3. For rollbacks, consult [references/rollout.md](references/rollout.md).
+
+### Frontmatter reference
+
+ | 
+ | Field | Required | Rules
+
+ | name | yes | Max 64 chars; lowercase a-z 0-9 -; no leading/trailing or consecutive hyphens. Valid: pdf-processing. Invalid: PDF-Processing, -pdf, pdf--processing. Unlike the standard, pi does not require the name to match the parent directory
+ 
+ | description | yes | Max 1024 chars. This field decides when the skill loads — be specific. Good: “Extracts text and tables from PDF files, fills forms, merges PDFs. Use when working with PDF documents.” Poor: “Helps with PDFs.”
+ 
+ | license | no | License name or reference to a bundled file
+ 
+ | compatibility | no | Max 500 chars; environment requirements
+ 
+ | metadata | no | Arbitrary key-value map
+ 
+ | allowed-tools | no | Space-delimited pre-approved tool list (experimental)
+ 
+ | disable-model-invocation | no | true hides the skill from the system prompt — callable only via /skill:name. Great for dangerous or rarely-needed skills
+
+◈ Forcing a skill to load
+ 
+Models don't always self-trigger a skill from its description. Every discovered skill registers as /skill:name, so you (or an orchestrator's prompt) can force it: /skill:deploy-check staging — arguments after the command are appended as User: <args>. Toggle this via "enableSkillCommands": true.
+
+▲ Validation
+ 
+Pi validates against the Agent Skills standard and stays lenient: over-long names, bad hyphenation, or over-long descriptions produce warnings but still load. Skills with missing descriptions, or malformed SKILL.md, are not loaded — if a skill "isn't working," check for a silent missing-description warning first. Review skill content before installing anything; skills can instruct the model to perform any action.
+
+05
+
+### Tools & extensions — the programmatic layer
+
+When declarative configuration runs out, extensions take over: TypeScript modules loaded at startup that register custom tools, intercept events, add commands, and reshape the TUI. They load via jiti with no build step, and they are exactly how Herdr's own integration reports pi's lifecycle state.
+
+### ##Built-in tools and how to restrict them
+
+Pi's minimal core is four tools — read, write, edit, bash — plus read-only helpers grep, find, ls and Windows' powershell. Restrict them globally with defaultTools (§03), per-run with flags, or with --exclude-tools to subtract from whatever would otherwise load:
+
+bashcopy
+ 
+pi --tools read,grep,find # strict allowlist for ALL tools, this run
+pi --no-builtin-tools # custom tools only
+pi --exclude-tools write,edit # read-only reviewer run
+pi -p --no-tools "explain this diff" # pure reasoning, zero side effects
+
+▲ Permissions are a design decision
+ 
+Pi ships no built-in permission system — it runs with the launching user's rights. For fleet work, either run worker repos in containers/VMs, or gate dangerous actions with a tool_call interceptor (next page block) and keep defaultTools minimal per worker role. Pi's docs describe containerization patterns (Docker, micro-VM sandboxes) for stronger boundaries.
+
+### ##Where extensions live
+
+ | 
+ | Location | Scope | Hot-reload
+
+ | ~/.pi/agent/extensions/*.ts or */index.ts | Global | yes — /reload
+ 
+ | .pi/extensions/*.ts or */index.ts | Project (trusted only) | yes — /reload
+ 
+ | extensions settings array | Custom paths / dirs | yes
+ 
+ | pi -e ./path.ts | Quick tests only | no (not auto-discovered)
+ 
+ | npm/git packages (pi install) | Shareable | via package manifest
+
+Available imports: @earendil-works/pi-coding-agent (types), typebox (schemas), @earendil-works/pi-ai (e.g. StringEnum), @earendil-works/pi-tui (UI components), plus node builtins and any npm deps declared in a neighboring package.json.
+
+### ##A complete custom tool extension
+
+This working example bundles the three things you'll use most: a custom tool the LLM can call, a command you can type, and a permission gate that intercepts risky bash. Drop it in place and run /reload:
+
+typescript~/.pi/agent/extensions/fleet-tools.tscopy
+ 
+import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
+import { Type } from "typebox";
+
+export default function (pi: ExtensionAPI) {
+
+ // 1 ── custom tool: the LLM can call `fleet_report` ──────────
+ pi.registerTool({
+ name: "fleet_report",
+ label: "Fleet Report",
+ description: "Write a structured progress report for the orchestrator.
+ Call this when a task milestone completes or a decision is needed.",
+ parameters: Type.Object({
+ status: Type.String({ description: "done | blocked | needs-review" }),
+ summary: Type.String({ description: "One-paragraph summary of progress" }),
+ }),
+ async execute(_id, params, _signal, _onUpdate, ctx) {
+ await ctx.ui.setWidget("fleet", [`status: ${params.status}`, params.summary]);
+ return { content: [{ type: "text", text: `report recorded: ${params.status}` }], details: {} };
+ },
+ });
+
+ // 2 ── command: the human can type /task ─────────────────────
+ pi.registerCommand("task", {
+ description: "Show current task from session state",
+ handler: async (_args, ctx) => {
+ ctx.ui.notify("See widget — fleet status is pinned above the editor", "info");
+ },
+ });
+
+ // 3 ── permission gate: confirm risky bash ───────────────────
+ pi.on("tool_call", async (event, ctx) => {
+ if (event.toolName === "bash" && event.input?.command?.includes("rm -rf")) {
+ const ok = await ctx.ui.confirm("Dangerous!", "Allow rm -rf?");
+ if (!ok) return { block: true, reason: "Blocked by fleet-tools gate" };
+ }
+ });
+}
+
+◈ Writing good tool descriptions
+ 
+A custom tool's description is prompt material: the LLM reads it to decide when to call. Optional promptSnippet adds a one-line summary to the available-tools list, and promptGuidelines appends usage bullets — each guideline must name the tool explicitly ("Use fleet_report when…", never "Use this tool when…").
+
+### ##The extension API surface you'll actually use
+
+ | 
+ | API | Purpose
+
+ | pi.on(event, handler) | Subscribe to lifecycle: session_start, tool_call (can block / rewrite), agent_start, agent_settled, turn/input events, and more
+ 
+ | pi.registerTool(def) | Custom LLM-callable tool; TypeBox parameters, async execute(toolCallId, params, signal, onUpdate, ctx) → {content, details}; onUpdate streams progress
+ 
+ | pi.registerCommand(name, {handler}) | Slash command; duplicates get numeric suffixes (/review:1, /review:2)
+ 
+ | pi.sendMessage(msg, {deliverAs, triggerTurn}) | Inject custom messages into LLM context — steer / followUp / nextTurn
+ 
+ | pi.sendUserMessage(content, opts) | Send an actual user message (always triggers a turn); expandPromptTemplates enables skill/command dispatch
+ 
+ | pi.appendEntry(type, data) | Persist state that survives restarts (TUI-only, not LLM context); restore in session_start
+ 
+ | pi.setActiveTools(names) / pi.getActiveTools() | Enable/disable any tool at runtime — including dynamically registered ones
+ 
+ | pi.registerProvider(name, config) | Add models/providers programmatically (e.g. a local OpenAI-compatible endpoint)
+ 
+ | pi.exec(cmd, args, opts) | Run subprocesses from extension code
+ 
+ | ctx.ui.confirm / input / select / notify / setStatus / setWidget | User interaction — dialogs in interactive mode, no-ops or sensible defaults headless
+ 
+ | ctx.modelRegistry / ctx.model / ctx.thinkingLevel | Inspect and change the current model and thinking level
+ 
+ | ctx.compact() / ctx.getContextUsage() | Manual compaction control — useful for very long orchestrations
+
+### ##Sharing via packages
+
+Anything in the previous two sections — skills, extensions, prompts, themes — bundles into a pi package installable from npm or git, which is how you distribute a standard fleet image:
+
+bashcopy
+ 
+pi install npm:@yourorg/fleet-standard
+pi install git:github.com/yourorg/fleet-standard@v1
+pi install npm:@andrewjacop/pi-herdr # the orchestrator extension (§08)
+pi uninstall npm:@yourorg/fleet-standard
+
+jsonsettings.json — filtered package loadingcopy
+ 
+{
+ "packages": [
+ "pi-skills",
+ { "source": "@yourorg/fleet-standard",
+ "skills": ["deploy-check"], // load only these…
+ "extensions": [] } // …and no extensions from it
+ ]
+}
+
+### ##Inside a package — the authoring contract
+
+A package is an ordinary package.json with a "pi" manifest declaring which resources it ships; without one, pi falls back to conventional directories (extensions/, skills/, prompts/, themes/). This is the entire contract pi-herdr uses — its manifest is literally {"pi": {"extensions": ["./src/index.ts"]}}. Add the pi-package keyword to appear in the pi.dev package gallery (optional video/image fields show a preview):
+
+jsonpackage.json — the pi manifestcopy
+ 
+{
+ "name": "@yourorg/fleet-standard",
+ "keywords": ["pi-package"],
+ "peerDependencies": {
+ "@earendil-works/pi-ai": "*",
+ "@earendil-works/pi-tui": "*",
+ "typebox": "*"
+ },
+ "pi": {
+ "extensions": ["./extensions"],
+ "skills": ["./skills"],
+ "prompts": ["./prompts"],
+ "themes": ["./themes"]
+ }
+}
+
+Dependency rules matter here. Never bundle what pi itself ships — list @earendil-works/pi-ai, @earendil-works/pi-agent-core, @earendil-works/pi-coding-agent, @earendil-works/pi-tui, and typebox as peerDependencies with a "*" range. Real runtime dependencies go in dependencies; pi runs npm install when the package is installed, so they arrive automatically. Manifest globs support !exclusions, and other pi packages you depend on must be bundled (dependencies + bundledDependencies) and referenced through node_modules/ paths.
+ 
+The full tool contract — every field a registerTool definition accepts, the same shape herdr_send_prompt and friends are built on:
+
+typescriptextensions/delegate.ts — full registerTool anatomycopy
+ 
+import { Type } from "typebox";
+import { StringEnum } from "@earendil-works/pi-ai";
+
+export default function (pi) {
+ pi.registerTool({
+ name: "delegate_task", // the LLM's tool name
+ label: "Delegate", // TUI display name
+ description: "Spawn a worker and wait for its result",
+ promptSnippet: "Delegate a self-contained task to a worker",
+ promptGuidelines: [
+ "Use delegate_task when the user asks for parallel or delegated work."
+ ], // flat bullets — name the tool!
+ parameters: Type.Object({
+ prompt: Type.String(),
+ mode: StringEnum(["sync", "async"] as const),
+ cwd: Type.Optional(Type.String())
+ }), // StringEnum — Google-safe enums
+ prepareArguments(args) { return args; }, // pre-validation shim for old sessions
+ async execute(toolCallId, params, signal, onUpdate, ctx) {
+ if (signal?.aborted) return { content: [{ type: "text", text: "Cancelled" }] };
+ onUpdate?.({ content: [{ type: "text", text: "Spawning…" }] });
+ const r = await pi.exec("herdr", ["agent", "prompt", "worker", params.prompt,
+ "--wait"], { signal });
+ return {
+ content: [{ type: "text", text: r.stdout }], // → to the LLM
+ details: { pane: "w1:p2" } // → renderers / state
+ }; // throw → isError:true · terminate:true → stop after this batch
+ },
+ renderCall(args, theme, context) { /* custom pane-side header */ },
+ renderResult(result, options, theme, context) { /* options.expanded, isPartial */ }
+ });
+}
+
+Details the signatures don't advertise: execute returning a value never sets the error flag — throw to mark a tool result as failed; terminate: true hints pi to skip the automatic follow-up LLM call (honored when every result in the batch terminates); tools that make nested LLM calls should return their combined usage so footer and session totals stay honest; and renderCall/renderResult receive a context with expanded, isPartial, executionStarted, and showImages so custom rendering can match the built-in tools' behavior. One hard rule for tool authors: tools must truncate their own output — the built-in budget is 50 KB (~10k tokens) and 2000 lines, whichever hits first, and pi exports truncateHead (file reads, search results), truncateTail (logs, command output), and truncateLine utilities for exactly this.
+
+◈ Slash commands with autocomplete
+ 
+pi.registerCommand("deploy", { description, getArgumentCompletions(prefix) { … }, handler(args, ctx) { … } }) is the full command contract — return AutocompleteItem[] (or null) to power tab-completion of arguments. Duplicate command names across extensions survive: pi appends numeric suffixes in load order (/review:1, /review:2). Tools registered mid-session (inside session_start or handlers) appear immediately — no /reload needed.
+
+### ##Prompt templates — the lightweight cousin
+
+When all you need is a reusable slash-prompt, skip extensions entirely. A Markdown file with optional frontmatter becomes a command: review.md → /review. Arguments use positionals ($1, $@), defaults (${1:-7}), and slicing (${@:2:3}):
+
+markdown.pi/prompts/review.mdcopy
+ 
+---
+description: Review staged git changes for bugs and security issues
+argument-hint: "[focus-area]"
+---
+Review the staged changes (`git diff --cached`). Focus on ${1:-bugs and security}:
+- Logic errors and edge cases
+- Error handling gaps
+- Confirm each finding against the actual diff before reporting
+
+Templates load from ~/.pi/agent/prompts/*.md (global) and .pi/prompts/*.md (project, trusted) — non-recursively; subdirectories need explicit settings entries.
+
+06
+
+### Herdr orchestration — the control surface
+
+Herdr gives you three primitives — layout, pane, agent — and exposes them identically to humans, scripts, and agents. This section covers the config file, the agent lifecycle model, and the exact command grammar for driving fleet members: start, prompt, wait, read, unblock — plus the pane-rendering anatomy behind reads, and the plugin actions that extend the surface itself.
+
+### ##herdr config.toml essentials
+
+Herdr needs no config, but fleet hosts usually want three tweaks. Read locations: ~/.config/herdr/config.toml on Linux/macOS, %APPDATA%\herdr\config.toml on Windows. Print the fully commented default with herdr --default-config, and reload a running server with herdr server reload-config (startup-only keys still need a restart):
+
+toml~/.config/herdr/config.tomlcopy
+ 
+onboarding = false # skip first-run setup
+
+[server]
+headless_cols = 160 # virtual terminal size when nobody is attached —
+headless_rows = 50 # matters for overnight/orchestrated runs
+
+[terminal]
+default_shell = "nu" # executable for new panes (empty = $SHELL)
+shell_mode = "auto" # auto|login|non_login — auto runs login shells on macOS
+new_cwd = "follow" # follow|home|current|"/fixed/path" for new panes
+
+[theme]
+name = "catppuccin" # built-in theme name
+custom.accent = "#4ae3b5" # token overrides on top of the base theme
+
+[keys]
+prefix = "ctrl+b" # tmux-style prefix; prefix+? shows all bindings
+
+[update]
+version_check = true # background version check
+manifest_check = true # remote agent-detection manifest updates
+
+The [server] headless size is the one fleet operators most often miss: with no client attached, the server lays out panes in a 120×40 virtual terminal, and agents that draw wide TUIs render against that geometry. Set it to match the largest TUI you orchestrate. Other useful facts: custom [[keys.command]] bindings run through /bin/sh -c (Unix) or cmd.exe /d /c (Windows); Git worktree checkouts created from the sidebar land under [worktrees] directory; and invalid values fall back to safe defaults with a startup warning rather than failing. The [theme] and [keys] lines above are only a preview — every color token, the tab bar, sidebar layouts, notifications, and the full keymap are designer-facing config too. §07 is the complete tour.
+
+### ##The agent lifecycle model
+
+Every recognized agent pane is classified as one of four states. With the official pi integration installed (§02), pi itself is the status authority and reports transitions precisely; without it, Herdr falls back to reading the pane's bottom-buffer against detection manifests. Either way the orchestration API is identical:
+
+ | 
+ | State | Meaning | Orchestrator behavior
+
+ | working | Agent is mid-turn, executing tools or streaming | Do not send input; wait
+ 
+ | idle | Ready for input (its tab seen in focused UI) | Safe to prompt; safe to read transcript
+ 
+ | done | Same underlying idle state after background work, until focused | Ready for harvest; waiting on idle or done both work
+ 
+ | blocked | Approval / question / permission UI is showing | Route to a human, or answer deliberately with agent send-keys
+ 
+ | unknown | Present but unclassifiable | Treat as not-proven-complete; inspect with agent read
+
+Blocked detection is deliberately strict: Herdr only claims blocked when the live screen matches known approval UI. If a pane shows a wrong state, herdr agent explain <target> prints which manifest matched, what evidence was seen, and why a fallback fired. Custom detection overrides live in ~/.config/herdr/agent-detection/<agent>.toml (local overrides always win; reload with herdr server reload-agent-manifests).
+
+### ##Three primitives, one grammar
+
+Layout commands (workspace, tab, pane split) create locations. Pane commands drive raw terminals — shells, test watchers, servers. Agent commands target the recognized agent inside a pane, by unique live name or pane id like w1:p2. Names must match [a-z][a-z0-9_-]{0,31}. Creation commands print JSON — capture IDs, never guess them:
+
+bashcopy
+ 
+# ── layout: create workspace → capture root pane id ──────────
+created=$(herdr workspace create --cwd ~/project --label api --no-focus)
+pane_id=$(printf '%s\n' "$created" | jq -r '.result.root_pane.pane_id')
+
+# split for a second worker; capture the NEW pane id
+split=$(herdr pane split "$pane_id" --direction right --no-focus)
+review_pane=$(printf '%s\n' "$split" | jq -r '.result.pane.pane_id')
+
+# ── agent: start pi in the shell pane ────────────────────────
+herdr agent start reviewer --kind pi --pane "$review_pane" -- --mode json
+
+# pane commands work on non-agent terminals too:
+herdr pane run w1:p3 "just test --watch"
+
+agent start requires an available shell pane — the shell sits at its prompt with nothing in the foreground — and never creates, splits, or moves layout itself. It returns only after Herdr detects the expected agent and marks it ready; --timeout can range 3000–300000 ms. Arguments after -- pass unchanged to the executable. --kind accepts ~20 kinds: pi, claude, codex, gemini, cursor, devin, agy, cline, omp, mastracode, opencode, copilot, kimi, kiro, droid, amp, grok, hermes, kilo, qodercli, qwen, maki.
+
+### ##Driving an agent: prompt → wait → read
+
+The everyday loop. agent prompt submits text plus Enter (honoring bracketed-paste), optionally waiting for a settled state; agent read pulls recent transcript text with ANSI stripped:
+
+bashcopy
+ 
+herdr agent prompt reviewer "Review the current diff" --wait --timeout 120000
+herdr agent read reviewer --source recent-unwrapped --lines 120
+
+# wait on lifecycle directly, with exact states:
+herdr agent wait reviewer --until idle --until done --timeout 300000
+
+# inspect + answer a blocked agent deliberately:
+herdr agent wait reviewer --until blocked --timeout 120000
+herdr agent read reviewer --source recent-unwrapped --lines 80
+herdr agent send-keys reviewer esc # esc|enter|up|ctrl+c …
+
+# fleet-wide visibility:
+herdr agent list # every live agent + state
+herdr agent get reviewer # one agent's details
+herdr agent rename w1:p2 reviewer # name for stable addressing
+
+▲ Semantics worth memorizing
+ 
+agent prompt --wait on a blocked agent returns agent_blocked without sending anything — inspect the dialog first. If a prompt is accepted from a non-working state, Herdr must observe a lifecycle change within 5 s or it returns agent_prompt_stalled. Waiting matches the current turn; it does not track whole conversations. pane wait-output is different: it greps the last 80 rendered rows (--lines, --regex) with no lifecycle awareness. Waits have no default timeout and can wait forever — always pass --timeout in scripts.
+
+### ##Every write verb, and what it actually does
+
+The API looks like a dozen near-synonyms, but each verb has one precise contract. This is the complete write surface — everything else (read, list, get, explain) is observation:
+
+ | 
+ | Verb | What it writes | Exact semantics
+
+ | pane run <pane> "cmd" | Command + Enter | Submits text and Enter atomically, honoring the pane's live bracketed-paste mode. Prefer it over send-text + send-keys enter for commands.
+ 
+ | pane send-text <pane> <text> | Literal text | No Enter, no key parsing — compose input across calls, submit deliberately.
+ 
+ | pane send-keys <pane> … | Terminal keys | Key-combo grammar: printable keys, enter/esc, chords (ctrl+h, control+j, alt+x, shift+tab), function keys (f1), named punctuation (minus, plus). Does not accept prefix+ binding strings.
+ 
+ | agent prompt <t> "text" | Prompt to the agent | Text plus encoded Enter after a short delay; honors bracketed paste; accepted even while the agent is working. Blocked agent → agent_blocked, nothing sent.
+ 
+ | agent send-keys <t> … | Keys to the agent's UI | Logical keys (esc, up, enter, ctrl+c; escape is an alias) for answering dialogs. Herdr validates every key before writing any bytes.
+ 
+ | agent wait <t> --until … | — (blocks) | Server-owned, event-driven; pins the resolved pane occupant so a replacement agent can't satisfy the wait. Defaults to idle/done/blocked.
+ 
+ | pane report-agent … | Lifecycle claim | --source + --agent + --state (+ --message, --agent-session-id/path). Reports can carry a strictly increasing --seq; stale sequence numbers from the same source are ignored.
+ 
+ | pane report-agent-session … | Session identity | Updates the native session reference without touching lifecycle state — waits, notifications, and rollups are unaffected.
+ 
+ | pane release-agent … | Authority release | Ends that source's lifecycle authority when its agent exits; Herdr falls back to screen detection.
+ 
+ | pane report-metadata … | Display only | --title, --display-agent, --token k=v, --state-label working="…", --ttl-ms. Never affects waits or rollups — safe for user hooks to layer on.
+
+Two facts worth carrying to the raw socket API (same verbs, JSON request/response): agent.prompt accepts a wait object ({until, timeout_ms}) that submits and starts waiting in one atomic request — no race between separate calls — and env passed by launchers (pane.split, plugin.pane.open take env) never overrides Herdr-managed variables like HERDR_PANE_ID. On the CLI side, the same rule applies to --env KEY=VALUE flags: managed variables stay authoritative when they conflict.
+
+### ##What a pane tells its agents
+
+Every process Herdr spawns inherits environment variables that make integrations safe by default — this is the contract behind Herdr's own skill and the pi integration:
+
+ | 
+ | Variable | Meaning
+
+ | HERDR_ENV | 1 inside a Herdr-managed pane — the skill's guardrail checks this first
+ 
+ | HERDR_PANE_ID | The hosting pane id (e.g. w1:p2); stays a valid alias even after the pane moves
+ 
+ | HERDR_BIN_PATH | Path to the herdr binary — use it for portable pane report-agent calls
+ 
+ | HERDR_SOCKET_PATH | Local socket for the JSON API, when CLI wrappers aren't enough
+
+Custom integrations follow the same pattern — report semantic state, release authority on exit, and use metadata for display-only tweaks:
+
+bashcopy
+ 
+"$HERDR_BIN_PATH" pane report-agent "$HERDR_PANE_ID" \
+ --source custom:my-agent --agent my-agent --state blocked \
+ --message "waiting for DB credentials"
+…
+"$HERDR_BIN_PATH" pane release-agent "$HERDR_PANE_ID" \
+ --source custom:my-agent --agent my-agent
+
+◈ Manual unstick
+ 
+If a pane's state looks stuck (finished but still working), force it: herdr pane report-agent <pane> --source manual --agent pi --state idle. And when a runaway needs killing, herdr_send_keys ["ctrl+c"] or agent send-keys … ctrl+c — not pane close, unless you mean to terminate it.
+
+### ##What a pi pane actually renders during a turn
+
+Reading agents through agent read gets much easier once you know what pi actually draws. During a turn the pane shows: your prompt echoed as a user message; assistant text streamed as Markdown (thinking blocks rendered as italic Markdown, or a single italic Thinking… label if hideThinkingBlock is set); each tool call as a block in a tinted box — pending background while running, success or error background once done, with a fallback renderer that caps output at 10 visual lines followed by … (N more lines, ctrl+o to expand); and a fixed status line at the bottom reading Working... for as long as the turn runs. That literal Working... string is not trivia: Herdr's bundled pi screen-detection manifest is exactly one rule — contains = ["Working..."] over the recent buffer — so screen-only detection lives and dies by that label. (The lifecycle integration from §02 makes it moot, which is why it's the recommended setup.)
+ 
+Three details about markers, ANSI, and truncation that reading recipes depend on:
+
+Invisible zone markers. Each completed assistant message is wrapped in OSC 133 semantic-zone sequences (ESC]133;A start, ESC]133;B/C end) embedded in the ANSI stream. They are present in the raw bytes — visible only with --format ansi reads — and always stripped from plain-text and detection reads. They don't pollute transcript text, and they're the seams automation can key on when ANSI is preserved.
+ 
+ANSI handling. pi draws with full theme colors, styles, and OSC 8 hyperlinks. Every Herdr read strips ANSI by default (the detection source is always plain text); pass --format ansi / --ansi when styling itself is evidence.
+ 
+Truncation is visual, not destructive. The 10-line tool preview keeps the last 10 visual lines (counting soft wraps at pane width). It only limits what's on screen — the full output still lives in the session transcript, and the separate 50 KB / 2000-line budget that tools apply for the LLM is a different layer (§05). Bumping --lines recovers more history only while pi runs in regular TUI mode; its experimental fullscreen scrolls inside the viewport, and rows that never touch the host scrollback can't be read back.
+
+### ##Plugins & [[actions]] — extending the control surface
+
+Herdr's own extension mechanism is the plugin: a directory with a herdr-plugin.toml manifest plus commands in any language (Bash, Node, Python, Rust — Herdr launches argv, no SDK required, and the entire Herdr CLI is the plugin API). Actions are the part orchestrators care about, because they turn recurring workflows into named, invocable operations:
+
+tomlmy-plugin/herdr-plugin.tomlcopy
+ 
+id = "fleet.nightly" # required: id, name, version, min_herdr_version
+name = "Nightly fleet"
+version = "0.1.0"
+min_herdr_version = "0.7.0" # refuses to install on older binaries
+platforms = ["linux", "macos", "windows"]
+
+[[actions]]
+id = "bootstrap" # local ids: no dots; unique per plugin
+title = "Bootstrap workspace"
+contexts = ["workspace"]
+command = ["node", "bootstrap.js"] # argv only — never run through a shell
+
+[[events]] # run on server events, e.g. worktree.created
+on = "worktree.created"
+command = ["node", "on-worktree.js"]
+
+[[panes]] # a managed TUI: overlay|popup|split|tab|zoomed
+id = "board"
+title = "Fleet board"
+placement = "overlay"
+command = ["fleet-board"]
+
+[[link_handlers]] # ctrl+click a matching URL → run an action
+id = "issue"
+title = "Open GitHub issue"
+pattern = "^https://github\\\\.com/[^/]+/[^/]+/issues/[0-9]+$"
+action = "bootstrap"
+
+When an action fires — via a keybinding ([[keys.command]] with type = "plugin_action" and the qualified id fleet.nightly.bootstrap), a ctrl-modified link click, or explicit invocation — Herdr starts the manifest command with the plugin directory as cwd and injects the runtime context: HERDR_SOCKET_PATH, HERDR_BIN_PATH, HERDR_ENV=1, HERDR_PLUGIN_ID, HERDR_PLUGIN_ROOT, HERDR_PLUGIN_CONFIG_DIR, HERDR_PLUGIN_STATE_DIR, HERDR_PLUGIN_ACTION_ID, any available HERDR_WORKSPACE_ID/HERDR_TAB_ID/HERDR_PANE_ID, and — the interesting one — HERDR_PLUGIN_CONTEXT_JSON: a JSON blob carrying the focused workspace, tab, pane, worktree provenance, agent, selected text, or clicked URL at invocation time. That's how one action script behaves correctly no matter where it was triggered from.
+
+bashinvoking and reading actionscopy
+ 
+herdr plugin link ./my-plugin # dev loop; install from GitHub: herdr plugin install owner/repo
+herdr plugin action list --plugin fleet.nightly
+herdr plugin action invoke fleet.nightly.bootstrap
+herdr plugin log list --plugin fleet.nightly --limit 20 # where the output went
+… # or the socket equivalents: plugin.action.list / plugin.action.invoke / plugin.log.list
+
+▲ Actions don't return output synchronously
+ 
+plugin action invoke (socket: plugin.action.invoke) starts the command and returns the invocation context plus the started command log record — that's all. The command's stdout/stderr land in Herdr's plugin command log, capped, readable via herdr plugin log list. So if a conductor — your orchestrating agent — needs structured results, the action must publish them itself: write JSON under HERDR_PLUGIN_STATE_DIR (or a task file) for the conductor to read, and/or report semantic state via pane report-agent / pane report-metadata. There is no synchronous stdout channel or result schema in plugin v1, and runtime action registration isn't supported either — everything is manifest-declared.
+
+Treat plugins like any other executable code on the machine: they run as your user with full CLI access, GitHub installs show a preview of the manifest and commands before running (build commands abort the install on failure), and a [[startup]] hook is a one-shot initializer that runs after session restore — not a supervised daemon.
+
+07
+
+### Herdr look & feel — the designer's layer
+
+Nothing in the Herdr GUI is hard-coded. Themes and every color token, the tab bar and its status widgets, the outer window title, sidebar row layouts, toasts, sounds, and the whole keymap are plain config.toml — and each session can be renamed, relabeled, and taught to describe itself at runtime. This section is the complete designer's tour of those knobs.
+
+### ##Where the knobs live, and how they reload
+
+Everything in this section goes into one file: ~/.config/herdr/config.toml (Windows: %APPDATA%\herdr\config.toml; relocate with HERDR_CONFIG_PATH). Herdr works with no config at all, so a designer's config is purely additive — start from the fully commented default and trim, or look up any single key in the machine-readable config reference that ships with the docs:
+
+bashdiscover → edit → hot-reloadcopy
+ 
+# 1 ── dump the complete default config as a starting point ────
+herdr --default-config > ~/.config/herdr/config.toml
+
+# 2 ── look up one key (type, default, description) in the JSON reference
+curl -fsSL 'https://raw.githubusercontent.com/herdrdev/herdr/v0.8.2/docs/next/website/src/data/config-reference.json' \
+ | jq --arg key 'ui.sidebar_width' '.sections[].keys[] | select(.key == $key)'
+
+# 3 ── apply edits to a running server — panes keep running ────
+herdr server reload-config
+
+Two reload facts shape the edit loop. First, herdr server reload-config (or reload config in the global menu) applies most UI settings live — themes, sidebar layouts, toasts — without touching running panes; only startup-only keys need a server restart. Second, an invalid value never blocks startup: Herdr falls back to the safe default and prints a startup warning, which makes a styled fleet config safe to ship in dotfiles. The startup warnings land in ~/.config/herdr/herdr.log alongside herdr-server.log / herdr-client.log when a color "mysteriously" doesn't apply.
+
+◈ The config reference is the source of truth
+ 
+This section covers the keys you will actually reach for, organized by what they change. For the full inventory — including scrollback limits, nested launches, and experimental flags — search the config reference (the jq one-liner above) or run herdr --default-config and read the comments. The in-app help panel (prefix+?) always shows the active keymap after your overrides.
+
+### ##Themes: built-ins, auto light/dark, 19 color tokens
+
+Herdr ships built-in themes selected by name; the default is catppuccin. Two special modes matter to designers: theme.name = "terminal" makes Herdr's UI colors follow the host terminal's ANSI palette (ideal when users already theme their terminals), and auto_switch flips between a light and dark theme when the host terminal reports an appearance change. If you omit light_name/dark_name, Herdr picks the matching built-in sibling when one exists — tokyo-night ↔ tokyo-night-day, gruvbox ↔ gruvbox-light:
+
+toml~/.config/herdr/config.tomlcopy
+ 
+[theme]
+name = "catppuccin" # any built-in name; "terminal" follows the host ANSI palette
+
+auto_switch = true # follow the host terminal's light/dark appearance
+light_name = "catppuccin-latte"
+dark_name = "catppuccin" # omitted names fall back to built-in siblings
+
+▲ Manual selection turns auto-switching off
+ 
+Picking a theme in the in-app Settings disables auto_switch — that's intentional, so a human's one-off choice wins over automation. When distributing a fleet image, tell designers to change themes in config.toml, not the Settings UI, or their auto_switch will silently stop working.
+
+On top of any base theme, [theme.custom] overrides individual color tokens. These are real design tokens, not scattered settings — recolor the accent once and highlights, borders, and navigation follow. Color values accept hex (#89b4fa), named colors (cyan), rgb(137,180,250), and the reset aliases reset/default/none/transparent (e.g. panel_bg = "reset" hands a surface back to the host terminal background).
+
+ | 
+ | Token group | Keys | What they control
+
+ | Surfaces | panel_bg · sidebar_bg · active_row_bg · selection_bg · surface0 · surface1 · surface_dim | Panels; the desktop sidebar's own background (omitted = host terminal background); the active Space and focused Agent row; the Navigate-mode cursor row; layered surface shades
+ 
+ | Text | text · subtext0 | Primary text and secondary/muted text
+ 
+ | Overlays | overlay0 · overlay1 | Overlay layers (popups, mode bars)
+ 
+ | Semantic | accent · mauve · green · yellow · red · blue · teal · peach | Highlights and state coloring — including the agent-state dots, done/blocked indicators, and git ahead/behind counts
+
+A complete recipe: make Herdr match this manual's own dark-terminal palette (deep slate surfaces, mint accent). Drop this into any fleet image and every attached client picks it up on reload:
+
+tomltheme recipe — "deep slate + mint"copy
+ 
+[theme]
+name = "catppuccin" # base theme under the overrides
+
+[theme.custom]
+sidebar_bg = "#0f141a" # sidebar gets its own deep-slate background
+active_row_bg = "#141c26" # focused agent / active space row
+selection_bg = "#1b2430" # navigate-mode cursor row
+accent = "#4ae3b5" # mint — highlights, borders, navigation
+green = "#4ae3b5" # done-states pick up the brand mint
+blue = "#6cb6ff" # idle-states
+yellow = "#f9e2af" # blocked-states
+
+### ##Panes, tabs, and the status bar
+
+The pane chrome and tab row live under [ui]. Defaults are sensible (borders, gaps, and scrollbars on), but every piece can be flattened for a borderless "zen" layout or hardened for readability on projectors. The accent for highlights, borders, and navigation UI is its own key — ui.accent, separate from the theme tokens, accepting hex/named/rgb:
+
+ | 
+ | Key | Default | What it does
+
+ | ui.pane_borders · pane_outer_borders | true · true | Inner borders between split panes; the outer frame around the pane area
+ 
+ | ui.pane_gaps · ui.pane_scrollbars | true · true | Blank gutters between panes; per-pane scrollbars
+ 
+ | ui.show_agent_labels_on_pane_borders | false | Draws the detected agent's name in split borders when the pane has no manual label (§ per-session polish below)
+ 
+ | ui.tab_bar_position | "top" | "bottom" moves the desktop tab row below the panes; Prefix/Navigate/Copy/Resize mode bars temporarily replace it while active
+ 
+ | ui.hide_tab_bar_when_single_tab | false | Reclaims the tab-row line for single-tab workspaces
+ 
+ | ui.confirm_close · ui.prompt_new_tab_name · ui.prompt_new_workspace_name | true · true · false | Confirmation and naming prompts when creating/closing
+ 
+ | ui.mouse_capture · ui.copy_on_select · ui.mouse_scroll_lines · ui.host_cursor | true · true · 3 · "auto" | Mouse behavior: capture, select-to-copy, wheel step, host cursor policy
+ 
+ | ui.accent | "cyan" | Accent for highlights, borders, and navigation UI — hex, named, or rgb
+ 
+ | ui.mobile_width_threshold | 64 | Terminal width below which the compact/mobile layout kicks in
+
+The tab row also hosts a tmux-style status area at its right edge, empty by default and built from an ordered widget array. Widgets: zoom (a fixed ZOOM pill while the active tab is zoomed), hostname, datetime (strftime format), text (a literal label), and — the powerful one — command: run any script and display its last line of output on an interval. Entries resolve on the Herdr server, so herdr --remote shows the remote machine's hostname, clock, and script output. Datetime directives that need a UTC offset or Unix timestamp (%z, %s) are rejected because the value is server-local wall-clock time:
+
+tomlstatus area + window titlecopy
+ 
+[ui]
+tab_bar_position = "bottom" # tab row under the panes, tmux-style
+window_title = "{hostname}: {workspace}" # outer terminal title template
+
+tab_bar_right = [
+ { type = "zoom" },
+ { type = "hostname" },
+ { type = "datetime", format = "%H:%M" },
+ { type = "text", text = "prod" },
+ { type = "command", command = "~/.config/herdr/status.sh",
+ interval_seconds = 5, timeout_seconds = 2 },
+]
+tab_bar_right_separator = " · " # "" concatenates; shown only between visible entries
+
+command widget semantics worth knowing before you rely on them: it runs immediately and then every interval_seconds (1–31,536,000) without blocking rendering or overlapping a previous run; timeout_seconds is 1–3,600; only the last line of successful output is displayed, and the slot is cleared on failure, empty output, or timeout. The script receives the same HERDR_* context as custom command keybindings (below), and runs through /bin/sh -lc on Linux/macOS, cmd.exe /d /c on Windows. On a narrow tab row the whole status area yields to the tabs.
+ 
+The outer terminal window title is a template too. Because Herdr emulates the panes' terminals, an OSC 0/2 title written inside a pane stops at Herdr; what window managers and terminal tab bars actually read is Herdr's own title, written to the terminal it runs in. Tokens: {hostname}, {workspace}, {tab}, {pane} (the focused pane's manual name), {terminal_title} (the focused pane's own title with spinner frames stripped); write {{/}} for literal braces and empty tokens render empty. It renders server-side, so remote attaches show the server's hostname; window_title = "" leaves the outer title alone entirely, and the socket methods client.window_title.set/clear override it temporarily.
+
+### ##The sidebar — design your fleet dashboard
+
+The sidebar is Herdr's main dashboard, and its rows are a layout language, not a fixed format. Sizing first: ui.sidebar_width (26; clamped by sidebar_min_width 18 / sidebar_max_width 36), ui.sidebar_start_collapsed, ui.sidebar_collapsed_mode (default "compact"), and ui.mobile_width_threshold for narrow terminals. Ordering: ui.agent_panel_sort = "spaces" (group by workspace) or "priority". And the states themselves can be color-dots or distinct shapes — ui.status_indicators = "dots" (default) or "symbols" for accessibility in monochrome or for color-blind users; symbols are static, so nothing animates.
+ 
+Row layouts are configured per panel — ui.sidebar.agents.rows for Agent rows and ui.sidebar.spaces.rows for Space rows. Each inner array renders as one line; tokens render in order, adjacent values are separated by ·, missing values (and their separators) disappear, and a row disappears entirely when none of its tokens have a value. Layouts may use at most 16 rows of at most 16 tokens. The defaults:
+
+tomldefault sidebar layoutscopy
+ 
+[ui.sidebar.agents]
+row_gap = 0
+rows = [
+ ["state_icon", "workspace", "tab"],
+ ["agent"],
+]
+
+[ui.sidebar.spaces]
+row_gap = 0
+rows = [
+ ["state_icon", "workspace"],
+ ["branch", "git_status"],
+]
+
+ | 
+ | Token | Agent rows | Space rows | Renders
+
+ | state_icon / state_text | ✓ | ✓ (rolled up) | Colored icon / text for the (rolled-up) agent state — idle, working, blocked, done, unknown, including any reported display label
+ 
+ | workspace | ✓ | ✓ | Workspace name
+ 
+ | tab · pane | ✓ | — | Tab / pane name when available
+ 
+ | agent | ✓ | — | Detected or reported agent display name
+ 
+ | terminal_title · terminal_title_stripped | ✓ | — | Latest OSC 0/2 title after safety normalization; stripped variant removes one leading activity/spinner glyph
+ 
+ | branch · git_status | — | ✓ | Git branch; ahead/behind counts when nonzero
+ 
+ | $name | ✓ | ✓ | Custom pane / workspace metadata reported at runtime — see per-session polish below
+
+Any token entry can be an inline style table — { token = "workspace", bold = false } or { token = "$summary", fg = "#89b4fa", bold = true, dim = false }. fg takes strict #RGB/#RRGGBB; omitted fields keep the token's contextual style; false explicitly removes a modifier. Styling applies per occurrence (the same token can look different in another row), and a foreground override replaces all semantic foregrounds inside that occurrence — styled git counts, for instance, use one color instead of the default green/red. Token styles never touch separators or row backgrounds, and row_gap (0 or 1) controls blank lines between entries per panel. All of this affects only the expanded desktop sidebar; collapsed and mobile views keep their compact layouts.
+ 
+Two more levers make this a genuine design surface. Per-agent overrides: ui.sidebar.agents.rows_by_agent replaces the whole layout for one known agent, keyed by canonical, case-sensitive agent id (pi, claude, codex… — detection aliases like claude-code are rejected); agents without an override use rows. Custom tokens: any $name becomes a live value once a script or plugin reports it with herdr pane report-metadata — unreported tokens simply disappear instead of rendering empty:
+
+tomla bespoke dashboard: styles, per-agent rows, custom tokenscopy
+ 
+[ui.sidebar.agents]
+row_gap = 1
+rows = [
+ ["state_icon", { token = "agent", bold = true }, "$model"],
+ [{ token = "$summary", fg = "#89b4fa", dim = true }],
+ ["workspace", "tab"],
+]
+
+# pi workers get a third line: their live terminal title, spinner-stripped
+[ui.sidebar.agents.rows_by_agent]
+pi = [
+ ["state_icon", "agent", "state_text"],
+ ["terminal_title_stripped"],
+ ["workspace", "tab"],
+]
+
+bashfeed the $model / $summary tokens from anywherecopy
+ 
+herdr pane report-metadata $pane \
+ --source my-agent-hook \
+ --token model=opus \
+ --token summary="reviewing authentication"
+herdr workspace report-metadata $ws --source my-hook --token env=staging
+
+### ##Notifications: toasts, sounds, and the notify CLI
+
+▲ Popups are off by default
+ 
+ui.toast.delivery defaults to "off" — a fresh Herdr never pops anything. If "notifications don't work," that's the config, not a bug. Herdr also suppresses popups for the active tab: you get notified about background agents, not the pane you're already looking at.
+
+Delivery has four modes, each for a different seat in the room. herdr draws an in-app toast (position configurable); terminal asks the outer terminal to raise the notification — this one also works over SSH; system talks to the local OS notification service directly; off disables popups. delay_seconds (0–3600) debounces flappy agents: Herdr sends the "finished" / "needs input" notification only if the pane is still in that state when the delay expires. Copy-to-clipboard feedback is its own toast (ui.toast.clipboard.enabled, position bottom-center).
+
+ | 
+ | Key | Default | Notes
+
+ | ui.toast.delivery | "off" | herdr in-app toast · terminal outer-terminal notification (SSH-friendly) · system OS service · off
+ 
+ | ui.toast.delay_seconds | 1 | 0–3600; state is re-checked when the delay expires
+ 
+ | ui.toast.herdr.position | "bottom-right" | In-app toast position within the Herdr frame
+ 
+ | ui.toast.clipboard.enabled · .position | true · "bottom-center" | The "copied" confirmation popup
+ 
+ | ui.sound.enabled | true | Plays for agents changing state in background workspaces
+ 
+ | ui.sound.path · done_path · request_path | unset | Custom mp3 files; relative paths resolve from the config file's directory; done/request override the generic sound
+ 
+ | ui.sound.agents.<id> | "default" | Per-agent default/on/off — keys include pi, claude, codex, gemini, cursor, devin, hermes, …; droid ships muted
+
+tomla full notification setupcopy
+ 
+[ui.toast]
+delivery = "herdr" # herdr | terminal | system | off
+delay_seconds = 1
+[ui.toast.herdr]
+position = "bottom-right"
+
+[ui.sound]
+path = "sounds/notification.mp3" # relative to config.toml
+done_path = "sounds/done.mp3" # agent finished
+request_path = "sounds/request.mp3" # agent needs input
+
+[ui.sound.agents]
+pi = "on" # force-on for the fleet's worker
+droid = "off" # muted by default anyway
+
+macOS quirk worth a design review: system tries terminal-notifier first and falls back to /usr/bin/osascript, which appears as "Script Editor" in Notification Center and cannot activate the hosting terminal on click. brew install terminal-notifier fixes both, and a supported, detected terminal can then be activated by clicking its notification — or choose delivery = "terminal" and let a supported outer terminal own notifications altogether.
+ 
+Notifications are also an agent-facing API, which is what makes them a design surface for fleets: any script, worker, or plugin action can raise a toast through the CLI, and it flows through the user's configured delivery (in-app, terminal, or OS):
+
+bashnotifications from orchestrators and hookscopy
+ 
+herdr notification show "Fleet finished" \
+ --body "3/3 workers idle — logs in workspace payments" \
+ --sound done
+herdr notification show "review-worker is blocked" \
+ --body "approval UI open in pane 2" --position bottom-left
+
+--position only affects in-app toasts; --sound none|done|request (default none) plays the existing finished/needs-attention sounds only when the notification is actually shown. This is the clean "page the human" primitive for Pattern A scripts, [[keys.command]] shell hooks, and plugin [[actions]] from §06.
+
+### ##Keybindings and custom command keys
+
+Herdr's keymap is tmux-like: a prefix (default ctrl+b) guards every binding so Herdr never steals input from shells, editors, or other TUIs. Key strings are explicit — prefix+n means "prefix, then n", while ctrl+alt+n is a direct chord — and a binding may be an array when one action needs several shortcuts. The in-app help panel (prefix+?) always shows the active bindings, with your description strings where provided:
+
+toml~/.config/herdr/config.tomlcopy
+ 
+[keys]
+prefix = "ctrl+b"
+goto = "prefix+g"
+new_tab = "prefix+c"
+next_tab = ["prefix+n", "ctrl+alt+]"] # arrays bind several shortcuts
+split_horizontal = "prefix+minus"
+
+# tmux-style one-keystroke resizing (optional actions are unset by default)
+resize_pane_left = "ctrl+shift+alt+left"
+resize_pane_right = "ctrl+shift+alt+right"
+
+# indexed jumps use 1..9 — tabs, workspaces, and agents side by side
+switch_tab = "prefix+1..9"
+switch_workspace = "prefix+shift+1..9"
+focus_agent = "prefix+alt+1..9"
+
+Key grammar: plain keys, modifier chords (ctrl+a, shift+n, alt+1, cmd+k), special keys (enter, tab, esc, arrows), and named punctuation (minus, plus, comma, ampersand, backtick). One hard rule: never bind a plain printable key directly (e.g. goto = "n") — it intercepts typing everywhere; use prefix+n unless you truly want a direct chord. The navigate_workspace_*/navigate_pane_* fields are the exception: they only fire in navigate mode and accept plain keys like j/k, but must not use prefix+, esc, enter, tab, shift+tab, arrows, or unmodified 1–9. Left/right arrows are permanent aliases for pane-left/right navigation, and a navigate-mode shortcut wins over a general binding while navigate mode is open. Modernized a legacy config? herdr config reset-keys backs up config.toml, removes [keys] and [[keys.command]], and applies the built-in v2 defaults after a restart or reload.
+ 
+The designer's favorite feature is [[keys.command]] — bind a hotkey to any command, in one of four flavors:
+
+ | 
+ | type | Behavior | Use for
+
+ | "popup" | Session-modal overlay; receives all terminal input (including Esc) until the command exits; default half-size, or width/height as cell numbers or "80%" strings (clamped to the minimum, border included) | lazygit, scratch shells, dashboards — without touching the tab layout
+ 
+ | "pane" | Temporary zoomed pane; closes when the command exits | Full-attention tools you want embedded in the layout
+ 
+ | "shell" | Runs detached in the background | Fire-and-forget scripts and notifications
+ 
+ | "plugin_action" | Invokes an installed plugin action by id — use the qualified id (example.layout.apply) when action ids aren't globally unique | One-key access to your §06 plugin actions
+
+tomlcustom command keybindingscopy
+ 
+[[keys.command]]
+key = "prefix+alt+g"
+type = "popup"
+command = "lazygit"
+description = "run lazygit" # shows in the prefix+? help panel
+width = "80%"
+height = "80%"
+
+[[keys.command]]
+key = "prefix+t"
+type = "popup"
+command = "exec \"${SHELL:-sh}\"" # scratch terminal (win: "powershell.exe -NoLogo")
+description = "open scratch terminal"
+
+[[keys.command]]
+key = "prefix+l"
+type = "plugin_action"
+command = "example.layout.apply"
+description = "apply layout"
+
+Custom commands inherit real context: they receive HERDR_SOCKET_PATH, HERDR_BIN_PATH, HERDR_ACTIVE_WORKSPACE_ID, HERDR_ACTIVE_TAB_ID, HERDR_ACTIVE_PANE_ID, and HERDR_ACTIVE_PANE_CWD when available, and shell commands run from the focused pane's working directory when Herdr can detect it. Popups get HERDR_ACTIVE_PANE_ID (the underlying tiled pane) rather than HERDR_PANE_ID. On Windows, command strings run through cmd.exe /d /c — use %HERDR_BIN_PATH% syntax, or invoke powershell.exe -NoProfile -Command "…" explicitly.
+
+### ##Per-session polish: rename, relabel, report
+
+This is the layer your sessions — the individual agent panes your team stares at all day — get their personality from. Three rename verbs feed the display pipeline: a renamed pane fills the {pane} window-title token, the sidebar's pane token, and the pane border label; renamed tabs and workspaces feed {tab}/{workspace} and the Space rows. With ui.show_agent_labels_on_pane_borders = true, borders show the detected agent name whenever no manual label is set — so an unlabeled fleet still reads clearly, and a labeled one reads exactly how you designed it:
+
+bashthe rename triocopy
+ 
+herdr pane rename $pane "api-review" # | --clear to reset
+herdr tab rename $tab "integration"
+herdr workspace rename $ws "payments"
+
+The second half is display-only metadata — a reporting channel that styles a session without touching its semantic state (that's report-agent's job, §06). pane report-metadata can override the pane title (--title), the visible agent name (--display-agent), the wording of each state (--state-label working="reviewing auth" — one of idle|working|blocked|done|unknown), and any $token your sidebar layout consumes. Guards and limits, precisely: --agent/--applies-to-source guard only --title/--display-agent/--state-label (token patches are owned by their reporters); text is trimmed, stripped of control characters, and capped at 80 characters per value; an empty normalized value clears the key; --ttl-ms (1–86,400,000) auto-expires; --seq lets Herdr ignore stale out-of-order reports from the same source; and each pane/workspace accepts sequenced reports from at most 32 distinct sources over its lifetime:
+
+basha self-describing sessioncopy
+ 
+herdr pane report-metadata $pane \
+ --source my-agent-hook \
+ --state-label working="reviewing authentication" \
+ --display-agent "pi · reviewer" \
+ --token model=opus \
+ --token task="auth-refresh" \
+ --ttl-ms 3600000
+herdr pane report-metadata $pane --source my-agent-hook --clear-title
+
+Then there are the layout verbs for live sessions. herdr pane zoom $pane --toggle|--on|--off gives a worker the whole screen for a moment; pane swap reorders siblings; and pane move re-parents a running session — to another split (--split), a new tab (--new-tab), or a whole new workspace (--new-workspace) — without killing it: the process keeps its launch-time environment, and the old pane id remains a working alias so --current commands still resolve. For mouse-centric reviewers, herdr pane input $pane --right-click pane forwards unmodified right-clicks to mouse-reporting pane applications (vim, midnight commander), while the pane frame keeps Herdr's own menu.
+
+◈ Combine with orchestration: sessions that style themselves
+ 
+The designer sets the layout language; the fleet fills it in. A worker hook (or a §06 plugin action) can rename its own pane, report $task/$model tokens, and swap its --state-label wording as it works — the sidebar then reads like a live status board with zero human labeling. Pair with Pattern A–C orchestrators (§08): the conductor reports fleet-level tokens via workspace report-metadata, fires notification show when the fleet settles, and the human just watches a dashboard they designed.
+
+### ##The designer's quick map
+
+Everything above, indexed by intent — "I want to change…" → the knob that changes it:
+
+ | 
+ | I want to… | Knob
+
+ | Recolor the whole UI | [theme] name (built-ins; "terminal" follows the host ANSI palette)
+ 
+ | Follow the terminal's light/dark mode | theme.auto_switch + light_name/dark_name
+ 
+ | Nudge one color (or hand a surface back to the terminal) | [theme.custom] tokens — hex / named / rgb() / reset
+ 
+ | Change highlight & navigation color | ui.accent (or theme.custom.accent)
+ 
+ | Flatten pane chrome for a zen layout | ui.pane_borders · pane_outer_borders · pane_gaps · pane_scrollbars
+ 
+ | Move the tab row / reclaim it | ui.tab_bar_position = "bottom" · ui.hide_tab_bar_when_single_tab
+ 
+ | Clock, hostname, or live script output in the tab row | ui.tab_bar_right widgets (zoom/hostname/datetime/text/command)
+ 
+ | Custom outer window title | ui.window_title — {hostname} {workspace} {tab} {pane} {terminal_title}
+ 
+ | Redesign sidebar rows / add columns | ui.sidebar.agents.rows · ui.sidebar.spaces.rows (+ inline style tables)
+ 
+ | Different row layout for one agent | ui.sidebar.agents.rows_by_agent.pi (canonical ids: pi, claude, …)
+ 
+ | Distinguish states beyond color | ui.status_indicators = "symbols"
+ 
+ | Desktop popups when background agents finish / need input | [ui.toast] delivery = herdr | terminal | system
+ 
+ | Custom sounds, per-agent mute | [ui.sound] mp3 paths · ui.sound.agents.<id>
+ 
+ | A hotkey for any tool or plugin action | [[keys.command]] — popup / pane / shell / plugin_action
+ 
+ | Remap keys, indexed jumps, prefix | [keys] · prefix+1..9 indexed fields · herdr config reset-keys
+ 
+ | Rename what a session displays | herdr pane|tab|workspace rename → title tokens, sidebar, borders
+ 
+ | Live, self-describing session rows | pane report-metadata — --token · --state-label · --display-agent · --title
+ 
+ | Fire a notification from a script | herdr notification show … --sound done|request
+
+08
+
+### Multi-agent patterns — fleets that finish
+
+Three complementary routes to orchestration: shell-level (scripts driving herdr agent …, full control, zero dependencies), pi as orchestrator (the pi-herdr extension exposing the fleet as native tools), and Hermes as orchestrator (Nous Research's agent — native subagent delegation plus the shared Herdr skill). They are not mutually exclusive — most serious setups combine them.
+
+### ##Pattern A — shell orchestrator (fan-out script)
+
+This complete script builds a two-worker layout in one project, launches pi in each, fans out prompts, and collects results — the exact recipes from §06 assembled end to end:
+
+bashfleet.sh — run from inside a herdr pane or with the server upcopy
+ 
+#!/usr/bin/env bash
+set -euo pipefail
+
+# 1 ── layout ─────────────────────────────────────────────────
+created=$(herdr workspace create --cwd "$1" --label "fleet-$(date +%H%M)" --no-focus)
+pane_a=$(printf '%s\n' "$created" | jq -r '.result.root_pane.pane_id')
+split=$(herdr pane split "$pane_a" --direction right --no-focus)
+pane_b=$(printf '%s\n' "$split" | jq -r '.result.pane.pane_id')
+
+# 2 ── launch workers (pi inherits your auth + config) ────────
+herdr agent start worker-a --kind pi --pane "$pane_a" --timeout 60000
+herdr agent start worker-b --kind pi --pane "$pane_b" --timeout 60000
+
+# 3 ── fan out prompts, wait for each to settle ───────────────
+herdr agent prompt worker-a "Write tests for auth.ts, then run them" \
+ --wait --timeout 600000
+herdr agent prompt worker-b "Refactor utils.ts and run the linter" \
+ --wait --timeout 600000
+
+# 4 ── harvest ─────────────────────────────────────────────────
+herdr agent read worker-a --source recent-unwrapped --lines 120 > /tmp/a.txt
+herdr agent read worker-b --source recent-unwrapped --lines 120 > /tmp/b.txt
+echo "== worker-a =="; cat /tmp/a.txt
+echo "== worker-b =="; cat /tmp/b.txt
+
+◈ Isolation with git worktrees
+ 
+Workers that edit the same repo will collide. Give each its own checkout: git worktree add ../proj-a feature-a and point each workspace create --cwd at a separate worktree. Herdr can also create and manage worktrees from the sidebar ([worktrees] directory in config), grouping them under the source workspace.
+
+### ##Pattern B — pi as orchestrator (pi-herdr extension)
+
+The pi-herdr package registers a first-class tool surface so pi itself becomes the orchestrator — spawn another pi, claude, codex, or opencode in its own visible pane, prompt it, wait for genuine lifecycle states, and harvest the answer. Every spawned agent stays independently attachable and interruptible while pi coordinates:
+
+bashcopy
+ 
+pi install npm:@andrewjacop/pi-herdr # global: every pi session loads it
+# restart pi or /reload; requires the herdr server to be running
+# then, in pi, just ask:
+Use herdr_delegate to spawn a fresh pi agent and ask it to summarize
+README.md in 3 bullets. Return its answer.
+
+ | 
+ | Tier 1 tool | What it does
+
+ | herdr_delegate | Composite one-shot: spawn → send → wait → harvest response. Accepts onBlocked: wait (hold until a human answers in the pane) or return ({blocked, question, paneId} so the orchestrator relays the question)
+ 
+ | herdr_start_agent | Launch any supported kind in a pane — takes an AgentSpec: agent (default pi), agentArgs (e.g. ["-ne","-e","./src/index.ts"]), cwd, name
+ 
+ | herdr_send_prompt | Submit a prompt (Enter by default)
+ 
+ | herdr_wait_agent | Block until idle / working / blocked / done with timeoutMs
+ 
+ | herdr_read_agent | Read recent or visible output text
+ 
+ | herdr_list_agents / herdr_get_agent | Fleet introspection
+ 
+ | herdr_stop_agent ⚠ | Destructive: closes the agent's pane (terminates it)
+ 
+ | herdr_send_keys | Logical keys like ["ctrl+c"] / ["esc"] — the unstick lever
+
+Lower tiers round it out: layout (herdr_split_pane, workspace/tab CRUD), pane-sync (herdr_run_command, herdr_wait_output), worktrees, and fleet snapshot tools. Configuration is environment-only: HERDR_BIN (binary path), HERDR_PRESET_<NAME> (custom launch presets as JSON argv), PI_HERDR_NO_SELF_REPORT=1 (disable self-report).
+
+◈ Why completion detection is reliable here
+ 
+Herdr's screen matcher can occasionally miss a fast working→idle transition, leaving a finished pane stuck on working. pi-herdr solves it with self-report: any pi inside a herdr pane pushes real state on lifecycle hooks (agent_start → working, agent_settled → idle) plus a herdr:blocked event channel — because the extension was installed globally, every spawned pi self-reports too. Non-pi agents (claude, codex) fall back to Herdr's polling agent get, which also catches settled states.
+
+### ##Pattern C — Hermes as orchestrator (Nous Research)
+
+Hermes Agent (Nous Research, MIT, nousresearch/hermes-agent, v0.20.x) is a terminal-native autonomous agent that can take the same orchestrator seat pi occupies in Pattern B. It brings three assets pi doesn't ship out of the box: native subagent delegation (delegate_task spawns child agents with isolated context), a self-improving skills + memory loop (the agent authors and refines its own procedures), and a messaging gateway (Telegram, Discord, Slack, Email — 20+ surfaces) so the coordinator stays reachable after you walk away. Herdr contributes what Hermes explicitly does not: a durable, observable runtime — upstream docs call top-level delegation process-local, not durable, which is exactly the gap a pane runtime fills.
+
+ | 
+ | Layer | Primitive | Lifetime | Visible as a pane?
+
+ | In-process subagents | delegate_task(tasks=[{goal, context}, …]) — fresh context, own terminal session, inherits the orchestrator's toolsets | Tied to the Hermes session/process — dies with /new, /stop, or a restart | No — runs inside the orchestrator's own terminal
+ 
+ | Herdr fleet workers | Terminal toolset → herdr agent start / prompt / wait / read (taught by the Herdr skill) | Panes and sessions survive restarts; resumable via hermes --resume <id> | Yes — every worker is a real pane in the sidebar
+
+Setup is four moves. Install and authenticate Hermes, hand it the same upstream Herdr skill every other agent gets (§02), install Herdr's Hermes integration for native session restore, then run the orchestrator itself in a managed pane:
+
+bashprovision the Hermes orchestratorcopy
+ 
+# 1 ── install + authenticate Hermes ──────────────────────────
+curl -fsSL https://hermes-agent.nousresearch.com/install.sh | bash
+hermes setup --portal # one OAuth: model + Tool Gateway tools
+# (or) hermes model # pick a provider/model manually
+
+# 2 ── teach Hermes the herdr CLI — same skill file as §02 ────
+npx skills add herdrdev/herdr --skill herdr -g # cross-harness installer
+# older skills CLI? place the release-matched copy manually:
+mkdir -p ~/.hermes/skills/devops/herdr
+herdr --skill > ~/.hermes/skills/devops/herdr/SKILL.md
+
+# 3 ── native session restore for Hermes panes ────────────────
+herdr integration install hermes # writes plugins/herdr-agent-state/
+herdr integration status # Hermes Agent: session plugin v5+
+
+# 4 ── run the orchestrator itself in a managed pane ──────────
+herdr agent start orchestrator --kind hermes --pane "$orch_pane"
+herdr agent prompt orchestrator "Read the herdr-fleet skill and
+ build me a review fleet for this repo" --wait --timeout 120000
+
+Hermes keeps all non-secret settings in ~/.hermes/config.yaml (hermes config edit; secrets in ~/.hermes/.env). Three orchestrator-grade keys matter here — delegation fan-out, a shared skill library with pi, and a longer terminal timeout for fleet operations:
+
+yaml~/.hermes/config.yamlcopy
+ 
+delegation:
+ max_concurrent_children: 6 # default 3 — parallel batch per delegate_task
+ max_spawn_depth: 2 # let role="orchestrator" subagents fan out again
+
+skills:
+ external_dirs: # one library across harnesses
+ - ~/.agents/skills # the same dir pi reads (§03)
+
+terminal:
+ timeout: 600 # per-command timeout (s) — fleet ops run long
+
+Hermes's skill format is its own frontmatter dialect — same SKILL.md idea as pi, different fields. This is the fleet skill referenced by the prompt above; drop it in ~/.hermes/skills/devops/herdr-fleet/SKILL.md (or author it in Hermes with /learn, which is the idiomatic way):
+
+markdown~/.hermes/skills/devops/herdr-fleet/SKILL.mdcopy
+ 
+---
+name: herdr-fleet
+description: Drive a Herdr fleet from inside a Herdr pane — spawn workers of any
+ kind, fan out prompts, wait on lifecycle states, harvest results.
+version: 1.0.0
+metadata:
+ hermes:
+ category: devops
+ tags: [herdr, orchestration, multi-agent]
+ requires_toolsets: [terminal]
+---
+# Herdr Fleet Operations
+
+## When to Use
+Only when HERDR_ENV=1 — you are inside a Herdr-managed pane and may talk
+to the local herdr socket. Outside Herdr, refuse and say so.
+
+## Procedure
+1. `herdr agent list` — who exists and what state are they in.
+2. Layout: `herdr workspace create --cwd ~/proj --label fleet-$(date +%H%M)
+ --no-focus`, capture `.result.root_pane.pane_id`, then `herdr pane split`.
+3. Workers of any kind: `herdr agent start worker-a --kind pi --pane $p
+ --timeout 60000` (kinds: pi, claude, codex, hermes, opencode, …).
+4. Fan out: `herdr agent prompt worker-a "…" --wait --timeout 600000`.
+5. Harvest: `herdr agent read worker-a --source recent-unwrapped --lines 120`.
+6. A `blocked` result means approval UI — `herdr agent read` it, then route
+ to a human or answer deliberately with `herdr agent send-keys`.
+
+## Pitfalls
+- Always pass --timeout; waits can wait forever.
+- Workers editing one repo need separate git worktrees.
+- delegate_task subtasks are process-local — use Herdr panes for work that
+ must survive a restart.
+
+## Verification
+`herdr agent list` shows every worker idle/done under your labels.
+
+Then drive it in natural language — the orchestrator picks the layer per subtask:
+
+promptto hermes in the orchestrator panecopy
+ 
+Act as fleet orchestrator (herdr-fleet skill).
+
+1. In-process, fast: delegate_task three reviewers over src/auth/ —
+ security, performance, API design. Each gets complete context:
+ absolute file paths, framework, and the pytest command.
+2. Durable, visible: create a workspace, start a codex worker
+ (herdr agent start refactorer --kind codex …) and hand it the
+ migration task with --wait so it survives the session.
+3. Collect both channels into one status report; list every blocked
+ agent that needs a human decision.
+
+◈ Choosing the layer per subtask
+ 
+delegate_task wins on speed and context isolation — zero setup, parallel by default, and the child starts with no bias from your conversation. But it cannot outlive the Hermes process, and nobody can attach to it mid-run. A Herdr pane is slower to provision but is a real terminal: it survives restarts, shows in the sidebar, can be attached with herdr agent attach, and can be any kind. Working rule: interactive exploration and review → delegate_task; anything overnight, long-running, or human-reviewable → panes.
+
+▲ Hermes-specific gotchas
+ 
+Session-only integration. herdr integration install hermes writes plugins/herdr-agent-state/ under HERMES_HOME (default ~/.hermes; Windows %LOCALAPPDATA%\hermes) and enables it in config.yaml — it reports the session id for hermes --resume <id>, but unlike pi's integration it is not a lifecycle authority: state comes from screen manifests. Verify detection with herdr agent explain, and expect brand-new prompt shapes to read as idle until manifests catch up. The Hermes config directory must exist (run hermes once) before installing. Delegation caps. Subagents inherit the orchestrator's enabled toolsets — tighten the orchestrator's tools before fanning out; leaves can't delegate again unless spawned as role="orchestrator" with max_spawn_depth > 1; the default batch is 3.
+
+### ##Pattern D — heterogeneous review
+
+Because each worker is a real CLI in a real pane, teams can mix vendors freely — a different model reviewing pi's work is two tool calls, not an integration project. The same fleet can contain pi, claude, codex, opencode, and hermes workers side by side:
+
+prompt to picopy
+ 
+Use herdr_start_agent to launch a claude agent, then herdr_send_prompt it
+"review the diff in git diff main" and wait for its verdict.
+
+In parallel, use herdr_delegate three times to spawn three pi agents —
+one to write tests for auth.ts, one for payment.ts, one for user.ts.
+Wait for all three, then give me a combined summary and any failures.
+
+### ##Design rules for fleets that finish
+
+One install, many configs. Keep pi global; specialize via each repo's .pi/ + AGENTS.md (§03). Upgrades stay one command, and every worker's behavior is auditable from files.
+ 
+Name everything. Stable agent names (reviewer, worker-a) survive panes; address by name in prompts and scripts, not pane ids.
+ 
+Always timeout. Every wait primitive can wait forever. Scripted waits get explicit --timeout values, and a blocked result is routed — never retried blind.
+ 
+Isolate write-heavy workers. Separate worktrees per editing worker; reviewers get read-only toolsets via defaultTools or --exclude-tools.
+ 
+Let states drive, not keystrokes. --until blocked + agent read + a deliberate answer beats sleep-and-hop. That is the entire point of the lifecycle authority you installed in §02.
+ 
+Keep the skill installed everywhere. The Herdr skill (§02) plus an orchestrator-native layer — pi-herdr for pi, the herdr-fleet skill for Hermes (Pattern C) — means any agent can become a helper — including agents you didn't plan for.
+
+▲ Platform notes recap
+ 
+macOS: start herdr from a terminal, never brew services (launchd PATH strips node; spawned pi dies silently). Windows: on herdr 0.7.5-preview, agent start --kind cannot launch npm .cmd shims — pi-herdr works around it via pane run with auto-detection, and preset env vars like HERDR_PRESET_GEMINI='["cmd","/c","gemini"]' handle other agents.
+
+09
+
+### Cheat sheet & troubleshooting
+
+The one-page reference: every file path, every environment variable, the command grammar, and the fixes for the failure modes you will actually hit.
+
+### ##File paths at a glance
+
+ | 
+ | File / directory | Owner | Role
+
+ | ~/.pi/agent/settings.json | pi | Global settings (model, tools, resources, trust fallback)
+ 
+ | .pi/settings.json | pi | Project settings — override global, nested merge
+ 
+ | ~/.pi/agent/AGENTS.md | pi | Global instructions
+ 
+ | AGENTS.md / CLAUDE.md / AGENTS.override.md | pi | Project instructions (override wins)
+ 
+ | .pi/SYSTEM.md · ~/.pi/agent/SYSTEM.md | pi | Replaces the built-in system prompt (project wins when trusted)
+ 
+ | .pi/APPEND_SYSTEM.md · ~/.pi/agent/APPEND_SYSTEM.md | pi | Appended to whatever system prompt is active
+ 
+ | ~/.pi/agent/trust.json | pi | Saved per-folder trust decisions
+ 
+ | ~/.pi/agent/auth.json | pi | Provider tokens & API keys, auto-refresh
+ 
+ | ~/.pi/agent/skills/ · .pi/skills/ · .agents/skills/ | pi | Skill discovery (global · project · cross-harness)
+ 
+ | ~/.pi/agent/extensions/ · .pi/extensions/ | pi | Extension auto-discovery (/reload hot-swap)
+ 
+ | ~/.pi/agent/prompts/ · .pi/prompts/ | pi | Prompt templates → /name commands
+ 
+ | ~/.pi/agent/extensions/herdr-agent-state.ts | herdr→pi | Written by herdr integration install pi — lifecycle authority
+ 
+ | ~/.config/herdr/config.toml (win: %APPDATA%\herdr\) | herdr | Herdr config — themes & colors, UI/sidebar, notifications, keys, headless size, terminal defaults (§06–07)
+ 
+ | ~/.config/herdr/agent-detection/<agent>.toml | herdr | Local detection-manifest overrides (always win)
+ 
+ | herdr-plugin.toml (in plugin dir) | herdr | Plugin manifest: [[actions]], [[events]], [[panes]], [[link_handlers]] (§06)
+ 
+ | skills/herdr/SKILL.md (repo) · herdr --skill | herdr | Agent skill file teaching the herdr CLI
+ 
+ | ~/.hermes/config.yaml · .env · SOUL.md | hermes | Hermes settings · secrets · identity — under HERMES_HOME (§08 Pattern C)
+ 
+ | ~/.hermes/skills/<category>/<skill>/SKILL.md | hermes | Hermes skill library — plus skills.external_dirs for shared dirs
+ 
+ | <HERMES_HOME>/plugins/herdr-agent-state/ | herdr→hermes | Written by herdr integration install hermes — session identity (not lifecycle)
+
+### ##Environment variables
+
+ | 
+ | Variable | Set by | Purpose
+
+ | ANTHROPIC_API_KEY / OPENAI_API_KEY / … | you | Provider auth (or store durably via /login → auth.json)
+ 
+ | PI_CODING_AGENT_DIR | you | Relocate the agent dir; herdr's integration writes there when set
+ 
+ | PI_CODING_AGENT_SESSION_DIR | you | Session directory override (beats sessionDir setting)
+ 
+ | PI_SKIP_VERSION_CHECK=1 | you | Disable pi update checks; PI_OFFLINE=1 kills all startup network ops
+ 
+ | HERDR_ENV | herdr | 1 inside a herdr pane — the skill's guardrail checks it first
+ 
+ | HERDR_PANE_ID | herdr | Hosting pane id, stable alias across moves
+ 
+ | HERDR_BIN_PATH / HERDR_SOCKET_PATH | herdr | Portable CLI calls / direct socket IPC from inside panes
+ 
+ | HERDR_BIN · HERDR_PRESET_<NAME> · PI_HERDR_NO_SELF_REPORT | you | pi-herdr extension tuning (binary path, launch presets, self-report off)
+ 
+ | HERDR_PLUGIN_ID/ROOT/CONFIG_DIR/STATE_DIR · HERDR_PLUGIN_CONTEXT_JSON · HERDR_PLUGIN_ACTION_ID/EVENT/EVENT_JSON/ENTRYPOINT_ID | herdr | Injected into every plugin command — identity, owned dirs, and the invocation context blob (§06)
+ 
+ | HERDR_AGENT=<kind> | you | Hint detection when an agent runs behind a VM/sandbox wrapper
+ 
+ | HERDR_CONFIG_PATH · HERDR_DISABLE_SOUND | you | Relocate config.toml · kill sound playback even when [ui.sound] is enabled (§07)
+ 
+ | HERMES_HOME | you | Hermes home dir (default ~/.hermes; win %LOCALAPPDATA%\hermes) — herdr's integration writes there
+
+### ##Command grammar quick reference
+
+bashcopy
+ 
+── pi ─────────────────────────────────────────────────────
+pi # interactive in cwd
+pi -p "one-shot prompt" # non-interactive
+pi -c | -r # continue / resume browser
+pi --mode json | --mode rpc # machine surfaces
+pi -e ./ext.ts # test an extension
+pi --tools read,grep -p "…" # strict allowlist run
+
+── hermes (orchestrator, §08 Pattern C) ───────────────────
+hermes setup --portal # OAuth: model + Tool Gateway
+hermes model # switch provider/model
+hermes config edit # open ~/.hermes/config.yaml
+hermes --resume <id> # resume a pane's session
+herdr agent start NAME --kind hermes --pane $pane
+herdr integration install hermes # session-identity plugin
+
+── herdr: layout ──────────────────────────────────────────
+herdr workspace create --cwd DIR --label api --no-focus
+herdr pane split $pane --direction right --no-focus
+
+── herdr: agents ──────────────────────────────────────────
+herdr agent start NAME --kind pi --pane $pane -- [args…]
+herdr agent prompt NAME "text" --wait --timeout 120000
+herdr agent wait NAME --until idle --until done --timeout 300000
+herdr agent read NAME --source recent-unwrapped --lines 120
+herdr agent send-keys NAME esc|ctrl+c|enter
+herdr agent list | get | rename | explain
+herdr integration install pi | status
+
+── herdr: raw panes ───────────────────────────────────────
+herdr pane run $pane "cmd"
+herdr pane wait-output $pane --regex "passed|failed" --timeout 120000
+herdr pane report-agent $pane --source s --agent a --state idle
+
+── herdr: plugins & actions ───────────────────────────────
+herdr plugin link ./my-plugin | list | uninstall ID
+herdr plugin action list [--plugin ID]
+herdr plugin action invoke plugin.id.action
+herdr plugin log list --plugin ID --limit 20
+herdr plugin pane open --plugin ID --entrypoint ID --placement popup
+
+── herdr: look & feel (§07) ───────────────────────────────
+herdr --default-config > ~/.config/herdr/config.toml
+herdr server reload-config # hot-apply most UI settings
+herdr config reset-keys # back up config, restore v2 keymap
+herdr notification show "title" --body "text" --sound done
+herdr pane rename $pane "api-review" # or: --clear
+herdr tab rename $tab "integration"
+herdr workspace rename $ws "payments"
+herdr pane report-metadata $pane --source s \
+ --state-label working="reviewing auth" --token model=opus --ttl-ms 3600000
+herdr pane zoom $pane --toggle
+herdr pane move $pane --new-tab # or: --new-workspace
+
+### ##Troubleshooting table
+
+ | 
+ | Symptom | Likely cause | Fix
+
+ | Project settings/skills silently ignored in -p / rpc runs | No saved trust decision; defaultProjectTrust defaults to ask = ignore | /trust once per repo, or pi -p -a for one run, or set "defaultProjectTrust": "always" on a dedicated box (§03)
+ 
+ | A skill never triggers | Missing/weak description (und.loadable without one), or model didn't match | Check startup warnings; write a specific description; force with /skill:name or disable-model-invocation for manual-only
+ 
+ | Spawned pi panes die instantly on macOS (~2 s, no output) | herdr under brew services: launchd minimal PATH has no node | brew services stop herdr; launch herdr from your terminal; or absolute paths + env PATH injection (§02, §08)
+ 
+ | Windows: agent start --kind pi fails with "%1 is not a valid Win32 application" | PowerShell Start-Process can't exec npm .cmd shims | Use pane run with the bare command (pi-herdr ≥0.2.x does this automatically), or upgrade herdr (§08)
+ 
+ | herdr agent prompt … --wait returns agent_blocked | Agent is showing approval/question UI | agent read to inspect, then answer with agent send-keys, or have a human click the pane
+ 
+ | agent_prompt_stalled | No lifecycle change observed within 5 s of acceptance | Usually a detection problem: check herdr agent explain, verify the pi integration is installed (§02)
+ 
+ | Finished pane stuck on working, waits hang | Screen matcher missed fast working→idle (non-pi agents) | Keep pi-herdr installed so pi self-reports; manual unstick: pane report-agent … --state idle; waits race a poll fallback
+ 
+ | Extension changes don't appear | Edits made outside auto-discovered paths, or session not reloaded | Place in ~/.pi/agent/extensions/ or .pi/extensions/ and run /reload; -e paths are test-only
+ 
+ | Configs "don't merge" the way you expect | Arrays replace; objects merge | Restate full arrays (e.g. defaultTools) in the project file when extending (§03)
+ 
+ | Panes render wrong when no client attached | 120×40 headless default too small for the TUI | Raise [server] headless_cols/rows in config.toml (§06)
+ 
+ | herdr integration install hermes fails or plugin missing | Hermes config directory doesn't exist yet (~/.hermes never created) | Run hermes once (or hermes setup --portal) to create HERMES_HOME, then reinstall (§08 Pattern C)
+ 
+ | Hermes pane shows idle while clearly working | Hermes integration is session-only — state comes from screen manifests, not lifecycle hooks | herdr agent explain <target>; wait on idle/done with generous timeouts; route blocked manually
+ 
+ | Hermes subagent work lost after /new or a restart | delegate_task is process-local — upstream calls it “not durable” | Use Herdr panes for must-survive work (§08 Pattern C); keep delegate_task for fast in-process subtasks
+ 
+ | Dangerous command executed in a worker | No gate; pi runs with your full user rights | Add the tool_call interceptor (§05), tighten defaultTools, and containerize worker repos for hard boundaries
+ 
+ | plugin action invoke prints no command output | v1 returns only the started log record — commands run async | Read herdr plugin log list --plugin ID; for structured results have the action write JSON under HERDR_PLUGIN_STATE_DIR or use pane report-agent (§06)
+ 
+ | herdr screen-detects pi as idle/unknown while it works | An extension overrode the working label the manifest matches (Working...) | Keep the pi integration installed so lifecycle reports are authoritative; check herdr agent explain (§02, §06)
+ 
+ | No notifications ever appear | ui.toast.delivery defaults to off; active-tab popups are suppressed by design | Set delivery = "herdr" | "terminal" | "system" (§07); verify with herdr notification show test
+ 
+ | A theme/color override “doesn't apply” | Invalid values fall back to the safe default with a startup warning — boot never fails | Check the startup warning and ~/.config/herdr/herdr.log; validate syntax (hex / named / rgb() / reset) (§07)
+ 
+ | A keybinding swallows typing in the shell | Plain printable key bound directly (e.g. goto = "n") intercepts input | Use prefix+n; keep plain keys only for navigate-mode navigate_* fields (§07)
+ 
+ | Sidebar $token stays empty | Token never reported, --ttl-ms expired, or the pane's 32-source cap is hit | pane report-metadata --token name=value; check --seq ordering; unreported tokens vanish by design (§07)
+
+### ##Where to go deeper
+
+Pi documentation — pi.dev/docs: settings, skills, extensions, packages, RPC/JSON modes, containerization. You can also ask pi itself: “explain yourself.”
+ 
+Herdr documentation — herdr.dev/docs: concepts, agents & detection, automation, socket API, plugins marketplace.
+ 
+Herdr configuration & theming — configuration guide (themes, sidebar layouts, notifications, keybindings) and the machine-readable config reference for every key, type, and default.
+ 
+pi-herdr — package page: full tool tiers, AgentSpec fields, platform notes.
+ 
+Skill sources — badlogic/pi-skills and Anthropic's skill libraries for ready-made capability packs.
+ 
+Hermes Agent documentation — hermes-agent.nousresearch.com/docs: config.yaml reference, toolsets, delegation patterns, skills system, gateway. Source: NousResearch/hermes-agent.
+
+ Customizing Pi · A Working Manual for Herdr Fleets — compiled 2026-08-31 from pi.dev docs, herdr.dev docs (incl. the configuration guide, config reference, and plugin/socket references), Nous Research docs, and upstream repositories (pi TUI sources re-verified against upstream main).
+
+ Versions referenced: pi 0.84.x · herdr 0.8.2 · pi-herdr 0.3.0 · hermes-agent 0.20.x. Self-contained single file — no network required.
+
+↑

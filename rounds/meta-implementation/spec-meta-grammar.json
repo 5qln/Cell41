@@ -1,0 +1,151 @@
+{
+  "name": "Grammar — the meta implementation (codex Parts II+III made executable)",
+  "round": "Grammar · the meta implementation — decoder (D1) + compiler (C1) + corruption taxonomy (C2.8), judged by the step mode",
+  "criteria_source": "The criteria are quoted from rounds/meta-implementation/commission.md §2 (staged on the box 2026-08-29, sha c9f3fda1270d440a3cf3fb6bf1b13fcc95ee75da4b54f9a66b7095404c5553ee), which quotes the held Codex (§2.1-2.5, §2.8, §3.1-3.6) and Appendix D (§D.7/D.8/D.12/D.14). The held sources are the Codex (page sha ccad26dd..., extraction e5f0c738...) and Appendix D (page sha a49e9413..., extraction 6bb28c37...).",
+  "artifact": "/opt/data/tmp/proving-meta/good/compiler.py",
+  "probe_pack": "probes.meta_grammar",
+  "lens_pack": "lenses_meta",
+  "sys_path": [
+    "/opt/data/tmp/proving-meta/good",
+    "/opt/data/tmp/proving-meta/ledger"
+  ],
+  "artifact_modules": [
+    "/opt/data/tmp/proving-meta/good/codex.py",
+    "/opt/data/tmp/proving-meta/good/corruption.py",
+    "/opt/data/tmp/proving-meta/good/decoder.py",
+    "/opt/data/tmp/proving-meta/good/compiler.py"
+  ],
+  "held_sources": {
+    "codex": "/opt/data/tmp/proving-meta/sources/5qln-codex.txt",
+    "appendix_d": "/opt/data/tmp/proving-meta/sources/5qln-codex-appendix-D-the-fractal.txt"
+  },
+  "author_selftest": "/opt/data/tmp/proving-meta/good/selftest.py",
+  "author_phase_card": "/opt/data/tmp/proving-meta/good/phase-card.md",
+  "binding": {
+    "codex_module": "codex",
+    "decoder_module": "decoder",
+    "compiler_module": "compiler",
+    "corruption_module": "corruption",
+    "decode_fn": "decode",
+    "decoder_error": "DecoderError",
+    "classify_fn": "classify",
+    "evaluate_fn": "evaluate",
+    "detect_claims_fn": "detect_claims",
+    "scan_fn": "scan_engine_sources",
+    "compile_artifact_fn": "compile_artifact",
+    "compile_cycle_fn": "compile_cycle",
+    "validate_fn": "validate",
+    "validate_surface_text_fn": "validate_surface_text",
+    "aggregate_fn": "aggregate",
+    "emit_fn": "emit",
+    "render_surface_fn": "render_surface",
+    "render_jacket_fn": "render_jacket",
+    "block_const": "CONSTITUTIONAL_BLOCK",
+    "compiled_const": "COMPILED",
+    "context_chain_const": "CONTEXT_CHAIN_TEXT",
+    "rules_const": "RULES",
+    "validation_order_const": "VALIDATION_ORDER",
+    "check_meta_const": "CHECK_META",
+    "codes_const": "CODES",
+    "code_names_const": "CODE_NAMES",
+    "code_failures_const": "CODE_FAILURES",
+    "trail_tags_const": "TRAIL_TAGS",
+    "course_const": "COURSE",
+    "phase_slots_const": "PHASE_SLOTS",
+    "output_symbols_const": "OUTPUT_SYMBOLS",
+    "context_in_const": "CONTEXT_IN",
+    "decoding_ops_const": "DECODING_OPS",
+    "desk_gates_const": "DESK_GATES",
+    "equation_forms_const": "EQUATION_FORMS",
+    "parse_surface_fn": "parse_surface",
+    "make_trail_entry_fn": "make_trail_entry"
+  },
+  "criteria": [
+    {
+      "id": "C1",
+      "probe": "decoder_walks_ops",
+      "title": "the Decoder — the numbered decoding operation walked symbol-by-symbol, in order, over the adaptive context, fail closed",
+      "measures": "decode_operation_order",
+      "verbatim": "C1 — The Decoder. §2.1–2.5, the five decoding operations, symbol-by-symbol, over the adaptive context (§2.6 / §3.3). §3.5 (syntax): \"Every decoding operation follows D1 symbol-by-symbol\"; §3.5 (drift): \"No decoding step omitted or reordered.\" §2.9: \"The decoding operations do not change at scale.\""
+    },
+    {
+      "id": "C2",
+      "probe": "compiler_block_exact",
+      "title": "the Compiler — the constitutional block byte-for-byte, the five compiled phases, the context chain verbatim",
+      "measures": "block_and_phases_exact",
+      "verbatim": "C2 — The Compiler. §3.1 \"Every compiled surface carries this block exactly\". §3.2 the five compiled phases each with EQUATION / OUTPUT / CONTEXT IN / CONTEXT OUT / DECODING / CORRUPTION / LENSES. §3.3 the adaptive context chain: S with ∅ (or ∞0' from prior cycle) → X … V with full trace → B + B'' + ∞0'."
+    },
+    {
+      "id": "C3",
+      "probe": "rules_checkable",
+      "title": "the thirteen decoder rules, checkable — R1–R13 enforced with verbatim citations",
+      "measures": "rules_enforced",
+      "verbatim": "C3 — The thirteen decoder rules, checkable. §3.4 R1–R13, enforced as checks: R1 … R13 (verbatim citations, the source's own numbering)."
+    },
+    {
+      "id": "C4",
+      "probe": "corruption_five",
+      "title": "the corruption taxonomy — exactly five, each a named decoding failure, no sixth",
+      "measures": "corruption_taxonomy",
+      "verbatim": "C4 — Corruption taxonomy. §2.8, exactly five, each a named decoding failure: L1 Closing · L2 Generating · L3 Claiming · L4 Performing · V∅ Incomplete. §3.5 (syntax): \"Five corruption codes exactly\"; §3.5 (drift): \"No corruption code added beyond five.\""
+    },
+    {
+      "id": "C5",
+      "probe": "validation_protocol",
+      "title": "the validation protocol — syntax/semantic/drift (§3.5) + D.12 + R1–R13 + HC, applied to any surface",
+      "measures": "validation_48",
+      "verbatim": "C5 — Validation protocol. §3.5, all three passes applied to any produced surface — syntax (6), semantic (6), drift (6) — with \"B, B'', ∞0' are three distinct things with distinct decoding steps\" and \"Crystallization reads the formation trail (not generated from nothing).\""
+    },
+    {
+      "id": "C6",
+      "probe": "surface_emission",
+      "title": "surface emission + the addressing layer — block exact, lawful parse, jacket visibly separate, 4+1 / signless start / ∞0′≡∞0",
+      "measures": "surface_lawful",
+      "verbatim": "C6 — Surface emission + the addressing layer. §3.6 \"Every emitted surface must carry: Constitutional block (§3.1) — exact · The active phase's compiled form WITH decoding operation (§3.2) · The adaptive context chain (§3.3) · The decoder rules (§3.4) · Resolved symbols for every symbol used (§1.9)\" — and \"Surfaces may add behavioral, interface, and domain layers — visibly separate from the decoding.\" Appendix D.12: 4+1 invariant, five equations verbatim, signless true start (AR5), ∞0′ ≡ ∞0 (D.8)."
+    },
+    {
+      "id": "C7",
+      "probe": "authenticity_refusal",
+      "title": "the authenticity prohibition — HC-1/HC-2 permanently INCONCLUSIVE, no authenticity field, a claim to reach ∞0 reads L3 never arrival",
+      "measures": "no_authenticity_verdict",
+      "verbatim": "C7 — The authenticity prohibition (the load-bearing refusal). The engine never scores, decides, or asserts authenticity. HC-1 (\"a machine click is never a verdict\") and HC-2 are permanently INCONCLUSIVE. No write path to state:attested; no non-null attestation_ref; a decode that claims to have reached ∞0 is corruption L3, reported as such — never as arrival."
+    }
+  ],
+  "claims": [
+    {
+      "id": "K1",
+      "probe": "stdlib_deterministic",
+      "title": "stdlib-only, deterministic, no LLM in the engine mechanics",
+      "measures": "foreign_imports",
+      "verbatim": "Stdlib only, deterministic, no LLM in the engine mechanics (the LLM lives at the desk, never in the decoder/compiler)."
+    },
+    {
+      "id": "K2",
+      "probe": "byte_exact_enumerated",
+      "title": "the equation byte forms enumerated with source + sha, never normalised",
+      "measures": "equation_bytes",
+      "verbatim": "No byte normalisation (⋂→∩ is renaming). The enumerated ∞0′/∞0' and ∩/⋂ forms are accepted as data, never folded into one."
+    },
+    {
+      "id": "K3",
+      "probe": "d14_loyalty",
+      "title": "D14 loyalty + the divergence log — no new L1 symbol, decoding operation, or sixth corruption code",
+      "measures": "divergence_log",
+      "verbatim": "Every decoding and compiling loyal to 5qln.com/codex (D14). Anything added beyond the source is declared derivative, visibly separate, no new L1 symbol, no new decoding operation, no sixth corruption code."
+    },
+    {
+      "id": "K4",
+      "probe": "no_authenticity",
+      "title": "no authenticity verdict — the engine never writes state:attested, never sets a machine attestation_ref",
+      "measures": "human_only",
+      "verbatim": "No authenticity verdict. The run has no write path to state attested and never types the human's word."
+    },
+    {
+      "id": "K5",
+      "probe": "no_podium_write",
+      "title": "no write path to the podium — no question.md write, no cell-attest, no input()",
+      "measures": "no_podium",
+      "verbatim": "No write path to the podium (PRD §2.1, T-R3-02). The engine never writes nodes/*/question.md, never invokes cell-attest, never prompts the centre S."
+    }
+  ]
+}

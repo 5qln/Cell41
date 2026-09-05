@@ -1,0 +1,19 @@
+{
+  "name": "R02-B1 relabel transcript — the post-swap cell: the centre is 'THE QUESTION' where the live cell says 'podium', and the G pane is 'g-desk' (§3.2 fact 4: labels are presentation and may be renamed at will)",
+  "note": "a relabelled pane must not change what a record means: the desk key (and therefore address/gate) comes from the label→desk config table, not from the label itself. Served statically.",
+  "panes": [
+    {"pane_id": "w8:p1", "workspace_id": "w8", "tab_id": "t8", "terminal_id": "term_1", "agent_status": "unknown", "focused": true, "revision": 0, "label": "THE QUESTION"},
+    {"pane_id": "w8:p3", "workspace_id": "w8", "tab_id": "t8", "terminal_id": "term_3", "agent_status": "blocked", "focused": false, "revision": 2, "label": "g-desk", "agent": "pi", "title": "π - the-cell"},
+    {"pane_id": "w8:p4", "workspace_id": "w8", "tab_id": "t8", "terminal_id": "term_4", "agent_status": "unknown", "focused": false, "revision": 1, "label": "V"},
+    {"pane_id": "w8:p5", "workspace_id": "w8", "tab_id": "t8", "terminal_id": "term_5", "agent_status": "unknown", "focused": false, "revision": 1, "label": "Q"},
+    {"pane_id": "w8:p6", "workspace_id": "w8", "tab_id": "t8", "terminal_id": "term_6", "agent_status": "unknown", "focused": false, "revision": 1, "label": "P"},
+    {"pane_id": "w9:p3", "workspace_id": "w9", "tab_id": "t9", "terminal_id": "term_9", "agent_status": "blocked", "focused": false, "revision": 1, "label": "g-desk"}
+  ],
+  "reads": {
+    "w8:p1": "",
+    "w8:p3": "π - the-cell\nG: blocked\n",
+    "w8:p4": "~\n",
+    "w8:p5": "~\n",
+    "w8:p6": "~\n"
+  }
+}
